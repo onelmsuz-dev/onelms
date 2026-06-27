@@ -195,16 +195,25 @@ tbody tr + tr {
   border-top: 1px solid rgba(255,255,255,0.06);
 }
 
-/* ---- Smooth transitions ---- */
-*,
-*::before,
-*::after {
-  transition-property: background-color, border-color, color, fill, stroke;
-  transition-duration: 150ms;
-  transition-timing-function: ease;
+/* ---- Global color transitions (in base so utilities can override) ---- */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-duration: 150ms;
+    transition-timing-function: ease;
+  }
 }
-/* But NOT layout-affecting transitions */
-.no-transition,
-.no-transition * {
-  transition: none !important;
+
+/* ---- Rail sidebar width transition ---- */
+.rail-sidebar {
+  transition: width 280ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes rail-label-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.rail-label-in {
+  animation: rail-label-in 180ms ease 140ms both;
 }
