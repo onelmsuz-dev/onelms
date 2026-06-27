@@ -91,6 +91,7 @@ export interface ScheduleEntry {
   courseName: string;
   day: string;
   time: string;
+  endTime: string;
   room: string;
   color: string;
 }
@@ -136,4 +137,39 @@ export interface MonthlyRevenue {
   month: string;
   kirim: number;
   chiqim: number;
+}
+
+export interface Branch {
+  id: string;
+  name: string;
+  address: string;
+  phone: string;
+  managerName?: string;
+  studentCount: number;
+  roomCount: number;
+  status: "active" | "inactive";
+  createdAt: string;
+}
+
+export interface Room {
+  id: string;
+  branchId: string;
+  branchName: string;
+  name: string;
+  capacity: number;
+  type: "dars_xonasi" | "kompyuter_lab" | "sport_zal" | "akt_zal";
+  status: "active" | "inactive";
+}
+
+export interface TeacherSalary {
+  teacherId: string;
+  teacherName: string;
+  salaryType: "fixed" | "percent";
+  baseSalary: number;
+  groupCount: number;
+  studentCount: number;
+  totalCollected: number;
+  calculatedSalary: number;
+  month: string;
+  status: "pending" | "paid";
 }

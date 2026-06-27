@@ -1,6 +1,7 @@
 import type {
   Lead, Student, Teacher, Course, Group, ScheduleEntry,
-  AttendanceRecord, Payment, Expense, DashboardStats, MonthlyRevenue
+  AttendanceRecord, Payment, Expense, DashboardStats, MonthlyRevenue,
+  Branch, Room, TeacherSalary,
 } from "@/types";
 
 export const MOCK_STATS: DashboardStats = {
@@ -19,6 +20,23 @@ export const MOCK_REVENUE: MonthlyRevenue[] = [
   { month: "Apr", kirim: 30000000, chiqim: 8500000 },
   { month: "May", kirim: 38000000, chiqim: 11000000 },
   { month: "Iyn", kirim: 42500000, chiqim: 12000000 },
+];
+
+export const MOCK_BRANCHES: Branch[] = [
+  { id: "b1", name: "Asosiy filial", address: "Toshkent, Chilonzor tumani, 10-uy", phone: "+998 71 200 0000", managerName: "Sarvar Abdullayev", studentCount: 145, roomCount: 5, status: "active", createdAt: "2022-01-15" },
+  { id: "b2", name: "Yunusobod filiali", address: "Toshkent, Yunusobod, 18-kvartal, 12-uy", phone: "+998 71 300 0000", managerName: "Dilnoza Ergasheva", studentCount: 102, roomCount: 4, status: "active", createdAt: "2023-06-01" },
+];
+
+export const MOCK_ROOMS: Room[] = [
+  { id: "r1", branchId: "b1", branchName: "Asosiy filial", name: "1-xona", capacity: 15, type: "dars_xonasi", status: "active" },
+  { id: "r2", branchId: "b1", branchName: "Asosiy filial", name: "2-xona", capacity: 15, type: "dars_xonasi", status: "active" },
+  { id: "r3", branchId: "b1", branchName: "Asosiy filial", name: "3-xona", capacity: 12, type: "dars_xonasi", status: "active" },
+  { id: "r4", branchId: "b1", branchName: "Asosiy filial", name: "Kompyuter lab", capacity: 20, type: "kompyuter_lab", status: "active" },
+  { id: "r5", branchId: "b1", branchName: "Asosiy filial", name: "Akt zal", capacity: 60, type: "akt_zal", status: "active" },
+  { id: "r6", branchId: "b2", branchName: "Yunusobod filiali", name: "A-xona", capacity: 12, type: "dars_xonasi", status: "active" },
+  { id: "r7", branchId: "b2", branchName: "Yunusobod filiali", name: "B-xona", capacity: 12, type: "dars_xonasi", status: "active" },
+  { id: "r8", branchId: "b2", branchName: "Yunusobod filiali", name: "C-xona", capacity: 15, type: "dars_xonasi", status: "active" },
+  { id: "r9", branchId: "b2", branchName: "Yunusobod filiali", name: "IT lab", capacity: 18, type: "kompyuter_lab", status: "active" },
 ];
 
 export const MOCK_LEADS: Lead[] = [
@@ -66,21 +84,41 @@ export const MOCK_COURSES: Course[] = [
 export const MOCK_GROUPS: Group[] = [
   { id: "g1", name: "Ingliz A1 - 1", courseId: "c1", courseName: "Ingliz tili", teacherId: "t1", teacherName: "Mohira Xasanova", studentCount: 14, maxStudents: 15, schedule: "Du, Chor, Jum", time: "09:00 - 10:30", room: "1-xona", startDate: "2024-03-01", status: "active" },
   { id: "g2", name: "Matematika 9-sinf", courseId: "c2", courseName: "Matematika", teacherId: "t2", teacherName: "Jamshid Tursunov", studentCount: 12, maxStudents: 15, schedule: "Ses, Pay, Shan", time: "11:00 - 12:30", room: "2-xona", startDate: "2024-02-15", status: "active" },
-  { id: "g3", name: "IT Dasturlash - Boshlang'ich", courseId: "c3", courseName: "IT Dasturlash", teacherId: "t3", teacherName: "Sardor Hasanov", studentCount: 13, maxStudents: 12, schedule: "Du, Chor, Jum", time: "14:00 - 16:00", room: "3-xona", startDate: "2024-04-01", status: "active" },
+  { id: "g3", name: "IT Dasturlash - Boshlang'ich", courseId: "c3", courseName: "IT Dasturlash", teacherId: "t3", teacherName: "Sardor Hasanov", studentCount: 13, maxStudents: 12, schedule: "Du, Chor, Jum", time: "14:00 - 16:00", room: "Kompyuter lab", startDate: "2024-04-01", status: "active" },
   { id: "g4", name: "Ingliz B1 - 1", courseId: "c1", courseName: "Ingliz tili", teacherId: "t1", teacherName: "Mohira Xasanova", studentCount: 11, maxStudents: 15, schedule: "Ses, Pay, Shan", time: "09:00 - 10:30", room: "1-xona", startDate: "2024-02-01", status: "active" },
   { id: "g5", name: "Rus tili - Boshlang'ich", courseId: "c4", courseName: "Rus tili", teacherId: "t4", teacherName: "Nilufar Ergasheva", studentCount: 10, maxStudents: 15, schedule: "Du, Chor, Jum", time: "16:00 - 17:30", room: "2-xona", startDate: "2024-03-15", status: "active" },
-  { id: "g6", name: "Python Dasturlash", courseId: "c3", courseName: "IT Dasturlash", teacherId: "t3", teacherName: "Sardor Hasanov", studentCount: 8, maxStudents: 12, schedule: "Ses, Pay", time: "17:00 - 19:00", room: "3-xona", startDate: "2024-05-01", status: "upcoming" },
+  { id: "g6", name: "Python Dasturlash", courseId: "c3", courseName: "IT Dasturlash", teacherId: "t3", teacherName: "Sardor Hasanov", studentCount: 8, maxStudents: 12, schedule: "Ses, Pay", time: "17:00 - 19:00", room: "Kompyuter lab", startDate: "2024-05-01", status: "upcoming" },
 ];
 
 export const MOCK_SCHEDULE: ScheduleEntry[] = [
-  { id: "sch1", groupName: "Ingliz A1 - 1", teacherName: "Mohira Xasanova", courseName: "Ingliz tili", day: "Dushanba", time: "09:00 - 10:30", room: "1-xona", color: "bg-blue-100 border-blue-400 text-blue-800" },
-  { id: "sch2", groupName: "Matematika 9-sinf", teacherName: "Jamshid Tursunov", courseName: "Matematika", day: "Dushanba", time: "11:00 - 12:30", room: "2-xona", color: "bg-green-100 border-green-400 text-green-800" },
-  { id: "sch3", groupName: "IT Dasturlash", teacherName: "Sardor Hasanov", courseName: "IT Dasturlash", day: "Dushanba", time: "14:00 - 16:00", room: "3-xona", color: "bg-purple-100 border-purple-400 text-purple-800" },
-  { id: "sch4", groupName: "Ingliz B1 - 1", teacherName: "Mohira Xasanova", courseName: "Ingliz tili", day: "Seshanba", time: "09:00 - 10:30", room: "1-xona", color: "bg-blue-100 border-blue-400 text-blue-800" },
-  { id: "sch5", groupName: "Matematika 9-sinf", teacherName: "Jamshid Tursunov", courseName: "Matematika", day: "Seshanba", time: "11:00 - 12:30", room: "2-xona", color: "bg-green-100 border-green-400 text-green-800" },
-  { id: "sch6", groupName: "Rus tili", teacherName: "Nilufar Ergasheva", courseName: "Rus tili", day: "Seshanba", time: "16:00 - 17:30", room: "2-xona", color: "bg-orange-100 border-orange-400 text-orange-800" },
-  { id: "sch7", groupName: "Ingliz A1 - 1", teacherName: "Mohira Xasanova", courseName: "Ingliz tili", day: "Chorshanba", time: "09:00 - 10:30", room: "1-xona", color: "bg-blue-100 border-blue-400 text-blue-800" },
-  { id: "sch8", groupName: "IT Dasturlash", teacherName: "Sardor Hasanov", courseName: "IT Dasturlash", day: "Chorshanba", time: "14:00 - 16:00", room: "3-xona", color: "bg-purple-100 border-purple-400 text-purple-800" },
+  // Dushanba
+  { id: "sch1",  groupName: "Ingliz A1 - 1",              teacherName: "Mohira Xasanova",   courseName: "Ingliz tili",    day: "Dushanba",   time: "09:00", endTime: "10:30", room: "1-xona",        color: "bg-blue-100 border-blue-400 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300" },
+  { id: "sch2",  groupName: "Matematika 9-sinf",           teacherName: "Jamshid Tursunov",  courseName: "Matematika",     day: "Dushanba",   time: "11:00", endTime: "12:30", room: "2-xona",        color: "bg-green-100 border-green-400 text-green-800 dark:bg-green-900/40 dark:text-green-300" },
+  { id: "sch3",  groupName: "IT Dasturlash",               teacherName: "Sardor Hasanov",    courseName: "IT Dasturlash",  day: "Dushanba",   time: "14:00", endTime: "16:00", room: "Kompyuter lab", color: "bg-purple-100 border-purple-400 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300" },
+  { id: "sch4",  groupName: "Rus tili - Boshlang'ich",     teacherName: "Nilufar Ergasheva", courseName: "Rus tili",       day: "Dushanba",   time: "16:00", endTime: "17:30", room: "3-xona",        color: "bg-orange-100 border-orange-400 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300" },
+  // Seshanba
+  { id: "sch5",  groupName: "Ingliz B1 - 1",              teacherName: "Mohira Xasanova",   courseName: "Ingliz tili",    day: "Seshanba",   time: "09:00", endTime: "10:30", room: "1-xona",        color: "bg-blue-100 border-blue-400 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300" },
+  { id: "sch6",  groupName: "Matematika 9-sinf",           teacherName: "Jamshid Tursunov",  courseName: "Matematika",     day: "Seshanba",   time: "11:00", endTime: "12:30", room: "2-xona",        color: "bg-green-100 border-green-400 text-green-800 dark:bg-green-900/40 dark:text-green-300" },
+  { id: "sch7",  groupName: "Python Dasturlash",           teacherName: "Sardor Hasanov",    courseName: "IT Dasturlash",  day: "Seshanba",   time: "17:00", endTime: "19:00", room: "Kompyuter lab", color: "bg-purple-100 border-purple-400 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300" },
+  // Chorshanba
+  { id: "sch8",  groupName: "Ingliz A1 - 1",              teacherName: "Mohira Xasanova",   courseName: "Ingliz tili",    day: "Chorshanba", time: "09:00", endTime: "10:30", room: "1-xona",        color: "bg-blue-100 border-blue-400 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300" },
+  { id: "sch9",  groupName: "Tayyorlov kursi",             teacherName: "Otabek Kamolov",    courseName: "Tayyorlov",      day: "Chorshanba", time: "11:00", endTime: "12:30", room: "2-xona",        color: "bg-yellow-100 border-yellow-400 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300" },
+  { id: "sch10", groupName: "IT Dasturlash",               teacherName: "Sardor Hasanov",    courseName: "IT Dasturlash",  day: "Chorshanba", time: "14:00", endTime: "16:00", room: "Kompyuter lab", color: "bg-purple-100 border-purple-400 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300" },
+  { id: "sch11", groupName: "Rus tili - Boshlang'ich",     teacherName: "Nilufar Ergasheva", courseName: "Rus tili",       day: "Chorshanba", time: "16:00", endTime: "17:30", room: "3-xona",        color: "bg-orange-100 border-orange-400 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300" },
+  // Payshanba
+  { id: "sch12", groupName: "Ingliz B1 - 1",              teacherName: "Mohira Xasanova",   courseName: "Ingliz tili",    day: "Payshanba",  time: "09:00", endTime: "10:30", room: "1-xona",        color: "bg-blue-100 border-blue-400 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300" },
+  { id: "sch13", groupName: "Matematika 9-sinf",           teacherName: "Jamshid Tursunov",  courseName: "Matematika",     day: "Payshanba",  time: "11:00", endTime: "12:30", room: "2-xona",        color: "bg-green-100 border-green-400 text-green-800 dark:bg-green-900/40 dark:text-green-300" },
+  { id: "sch14", groupName: "Nemis tili",                  teacherName: "Parizod Yusupova",  courseName: "Nemis tili",     day: "Payshanba",  time: "14:00", endTime: "15:30", room: "3-xona",        color: "bg-pink-100 border-pink-400 text-pink-800 dark:bg-pink-900/40 dark:text-pink-300" },
+  { id: "sch15", groupName: "Python Dasturlash",           teacherName: "Sardor Hasanov",    courseName: "IT Dasturlash",  day: "Payshanba",  time: "17:00", endTime: "19:00", room: "Kompyuter lab", color: "bg-purple-100 border-purple-400 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300" },
+  // Juma
+  { id: "sch16", groupName: "Ingliz A1 - 1",              teacherName: "Mohira Xasanova",   courseName: "Ingliz tili",    day: "Juma",       time: "09:00", endTime: "10:30", room: "1-xona",        color: "bg-blue-100 border-blue-400 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300" },
+  { id: "sch17", groupName: "Tayyorlov kursi",             teacherName: "Otabek Kamolov",    courseName: "Tayyorlov",      day: "Juma",       time: "11:00", endTime: "12:30", room: "2-xona",        color: "bg-yellow-100 border-yellow-400 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300" },
+  { id: "sch18", groupName: "IT Dasturlash",               teacherName: "Sardor Hasanov",    courseName: "IT Dasturlash",  day: "Juma",       time: "14:00", endTime: "16:00", room: "Kompyuter lab", color: "bg-purple-100 border-purple-400 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300" },
+  { id: "sch19", groupName: "Rus tili - Boshlang'ich",     teacherName: "Nilufar Ergasheva", courseName: "Rus tili",       day: "Juma",       time: "16:00", endTime: "17:30", room: "3-xona",        color: "bg-orange-100 border-orange-400 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300" },
+  // Shanba
+  { id: "sch20", groupName: "Ingliz B1 - 1",              teacherName: "Mohira Xasanova",   courseName: "Ingliz tili",    day: "Shanba",     time: "09:00", endTime: "10:30", room: "1-xona",        color: "bg-blue-100 border-blue-400 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300" },
+  { id: "sch21", groupName: "Matematika 9-sinf",           teacherName: "Jamshid Tursunov",  courseName: "Matematika",     day: "Shanba",     time: "11:00", endTime: "12:30", room: "2-xona",        color: "bg-green-100 border-green-400 text-green-800 dark:bg-green-900/40 dark:text-green-300" },
+  { id: "sch22", groupName: "Nemis tili",                  teacherName: "Parizod Yusupova",  courseName: "Nemis tili",     day: "Shanba",     time: "14:00", endTime: "15:30", room: "3-xona",        color: "bg-pink-100 border-pink-400 text-pink-800 dark:bg-pink-900/40 dark:text-pink-300" },
 ];
 
 export const MOCK_ATTENDANCE: AttendanceRecord[] = [
@@ -111,6 +149,14 @@ export const MOCK_EXPENSES: Expense[] = [
   { id: "e3", category: "Kommunal", description: "Elektr va suv", amount: 800000, date: "2024-06-10" },
   { id: "e4", category: "Marketing", description: "Instagram reklama", amount: 1200000, date: "2024-06-12" },
   { id: "e5", category: "Jihoz", description: "Marker va doskalar", amount: 350000, date: "2024-06-15" },
+];
+
+export const MOCK_TEACHER_SALARIES: TeacherSalary[] = [
+  { teacherId: "t1", teacherName: "Mohira Xasanova",  salaryType: "fixed",   baseSalary: 3000000, groupCount: 4, studentCount: 56, totalCollected: 22400000, calculatedSalary: 3000000, month: "2024-06", status: "pending" },
+  { teacherId: "t2", teacherName: "Jamshid Tursunov", salaryType: "percent", baseSalary: 25,      groupCount: 3, studentCount: 42, totalCollected: 12600000, calculatedSalary: 3150000, month: "2024-06", status: "pending" },
+  { teacherId: "t3", teacherName: "Sardor Hasanov",   salaryType: "fixed",   baseSalary: 3500000, groupCount: 3, studentCount: 38, totalCollected: 22800000, calculatedSalary: 3500000, month: "2024-06", status: "paid" },
+  { teacherId: "t4", teacherName: "Nilufar Ergasheva",salaryType: "fixed",   baseSalary: 2500000, groupCount: 2, studentCount: 24, totalCollected: 8400000,  calculatedSalary: 2500000, month: "2024-06", status: "pending" },
+  { teacherId: "t5", teacherName: "Otabek Kamolov",   salaryType: "percent", baseSalary: 20,      groupCount: 2, studentCount: 28, totalCollected: 8400000,  calculatedSalary: 1680000, month: "2024-06", status: "paid" },
 ];
 
 export const formatCurrency = (amount: number): string => {
