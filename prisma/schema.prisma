@@ -1,0 +1,302 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  PLATFORM_ADMIN
+  SUPER_ADMIN
+  TEACHER
+  RECEPTIONIST
+  ACCOUNTANT
+}
+
+enum Plan {
+  BASIC
+  PRO
+  ENTERPRISE
+}
+
+enum TeacherStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum SalaryType {
+  FIXED
+  PERCENT
+}
+
+enum GroupStatus {
+  ACTIVE
+  UPCOMING
+  COMPLETED
+}
+
+enum PaymentStatus {
+  TOLANDI
+  QARZDOR
+  QISMAN
+}
+
+enum PaymentMethod {
+  NAQD
+  KARTA
+  CLICK
+  PAYME
+}
+
+enum AttendanceStatus {
+  KELDI
+  KELMADI
+  KECH_KELDI
+  SABABLI
+}
+
+enum LeadStatus {
+  YANGI
+  ALOQA_QILINGAN
+  SINOV_DARSI
+  TO_LANDI
+  BEKOR
+}
+
+enum SalaryStatus {
+  PENDING
+  PAID
+}
+
+// ─── Platform ─────────────────────────────────────────────────────────────────
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  subdomain String   @unique
+  plan      Plan     @default(BASIC)
+  features  String[] @default([])
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users     User[]
+  branches  Branch[]
+  rooms     Room[]
+  courses   Course[]
+  teachers  Teacher[]
+  groups    Group[]
+  students  Student[]
+  payments  Payment[]
+  expenses  Expense[]
+  leads     Lead[]
+}
+
+// ─── Auth ────────────────────────────────────────────────────────────────────
+
+model User {
+  id             String        @id @default(cuid())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  phone          String
+  email          String?
+  password       String
+  name           String
+  role           Role          @default(TEACHER)
+  isActive       Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  teacher       Teacher?
+  leadsAssigned Lead[]    @relation("AssignedTo")
+  payments      Payment[] @relation("ReceivedBy")
+
+  @@unique([phone, organizationId])
+}
+
+// ─── Core entities ───────────────────────────────────────────────────────────
+
+model Branch {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  address        String?
+  phone          String?
+
+  rooms  Room[]
+  groups Group[]
+}
+
+model Room {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  branchId       String
+  branch         Branch       @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  name           String
+  capacity       Int?
+
+  groups Group[]
+}
+
+model Course {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  description    String?
+  duration       String
+  price          Float
+  color          String       @default("bg-blue-500")
+
+  groups Group[]
+}
+
+model Teacher {
+  id             String        @id @default(cuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String        @unique
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phone          String
+  email          String?
+  subjects       String[]
+  salary         Float
+  salaryType     SalaryType    @default(FIXED)
+  joinedAt       DateTime      @default(now())
+  status         TeacherStatus @default(ACTIVE)
+
+  groups   Group[]
+  salaries TeacherSalary[]
+}
+
+model Group {
+  id             String      @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  courseId       String
+  course         Course      @relation(fields: [courseId], references: [id])
+  teacherId      String
+  teacher        Teacher     @relation(fields: [teacherId], references: [id])
+  roomId         String?
+  room           Room?       @relation(fields: [roomId], references: [id])
+  branchId       String?
+  branch         Branch?     @relation(fields: [branchId], references: [id])
+  maxStudents    Int         @default(15)
+  scheduleDays   String[]
+  startTime      String
+  endTime        String
+  startDate      DateTime
+  endDate        DateTime?
+  status         GroupStatus @default(ACTIVE)
+  color          String      @default("bg-blue-100 border-blue-400 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300")
+
+  students   StudentGroup[]
+  attendance Attendance[]
+  payments   Payment[]
+}
+
+model Student {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  phone          String
+  parentPhone    String?
+  balance        Float        @default(0)
+  createdAt      DateTime     @default(now())
+
+  groups     StudentGroup[]
+  payments   Payment[]
+  attendance Attendance[]
+}
+
+model StudentGroup {
+  id            String        @id @default(cuid())
+  studentId     String
+  student       Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  groupId       String
+  group         Group         @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  paymentStatus PaymentStatus @default(TOLANDI)
+  joinedAt      DateTime      @default(now())
+
+  attendance Attendance[]
+
+  @@unique([studentId, groupId])
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  studentId      String
+  student        Student       @relation(fields: [studentId], references: [id])
+  groupId        String?
+  group          Group?        @relation(fields: [groupId], references: [id])
+  amount         Float
+  method         PaymentMethod @default(NAQD)
+  date           DateTime      @default(now())
+  note           String?
+  receivedById   String?
+  receivedBy     User?         @relation("ReceivedBy", fields: [receivedById], references: [id])
+}
+
+model Expense {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  category       String
+  description    String
+  amount         Float
+  date           DateTime     @default(now())
+}
+
+model Attendance {
+  id             String           @id @default(cuid())
+  studentGroupId String
+  studentGroup   StudentGroup     @relation(fields: [studentGroupId], references: [id], onDelete: Cascade)
+  studentId      String
+  student        Student          @relation(fields: [studentId], references: [id])
+  groupId        String
+  group          Group            @relation(fields: [groupId], references: [id])
+  date           DateTime
+  status         AttendanceStatus @default(KELDI)
+  note           String?
+
+  @@unique([studentGroupId, date])
+}
+
+model Lead {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  phone          String
+  source         String
+  course         String?
+  status         LeadStatus   @default(YANGI)
+  note           String?
+  assignedToId   String?
+  assignedTo     User?        @relation("AssignedTo", fields: [assignedToId], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model TeacherSalary {
+  id               String       @id @default(cuid())
+  teacherId        String
+  teacher          Teacher      @relation(fields: [teacherId], references: [id])
+  month            String
+  baseSalary       Float
+  totalCollected   Float
+  calculatedSalary Float
+  status           SalaryStatus @default(PENDING)
+  paidAt           DateTime?
+
+  @@unique([teacherId, month])
+}
