@@ -7,18 +7,6 @@ export const authConfig: NextAuthConfig = {
     error:  "/login",
   },
   callbacks: {
-    authorized({ auth, request: { nextUrl } }) {
-      const isLoggedIn    = !!auth?.user;
-      const isLoginPage   = nextUrl.pathname === "/login";
-      const isApiAuth     = nextUrl.pathname.startsWith("/api/auth");
-      const isLandingPage = nextUrl.pathname === "/";
-
-      if (isApiAuth)     return true;
-      if (isLandingPage) return true;
-      if (isLoginPage)   return isLoggedIn ? Response.redirect(new URL("/dashboard", nextUrl)) : true;
-      if (!isLoggedIn)   return false;
-      return true;
-    },
     jwt({ token, user }) {
       if (user) {
         token.id             = user.id ?? "";
