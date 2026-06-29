@@ -38,6 +38,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         // Subdomensiz kirish: telefon bo'yicha istalgan orgdan qidirish
         if (!subdomain || subdomain === "demo" || subdomain === "www") {
+          // Platform Admin ham subdomensiz kira olsin
+          const platformAdmin = await db.user.findFirst({
+            where: { phone, role: "PLATFORM_ADMIN", organizationId: null },
+          });
+          if (platformAdmin && platformAdmin.isActive) {
+            const valid = await bcrypt.compare(password, platformAdmin.password);
+            if (!valid) return null;
+            return {
+              id: platformAdmin.id, name: platformAdmin.name, email: platformAdmin.email ?? "",
+              phone: platformAdmin.phone, role: platformAdmin.role,
+              teacherId: null, organizationId: null,
+            };
+          }
+
           const user = await db.user.findFirst({
             where: { phone, organizationId: { not: null } },
             include: { organization: { select: { isActive: true } } },
