@@ -28,7 +28,7 @@ export default function AdmodeUsersPage() {
 
   const url = `/api/admode/users${q ? `?q=${encodeURIComponent(q)}` : ""}`;
   const { data, isLoading } = useSWR(url, fetcher);
-  const users: any[] = Array.isArray(data?.data) ? data.data : [];
+  const users: any[] = Array.isArray(data) ? data : [];
 
   // Group by organization
   const byOrg: Record<string, { orgName: string; subdomain: string; users: any[] }> = {};

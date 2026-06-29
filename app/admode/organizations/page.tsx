@@ -5,7 +5,7 @@ import useSWR from "swr";
 import { cn } from "@/lib/utils";
 import {
   Plus, X, Search, AlertCircle, CheckCircle, XCircle,
-  Building2, Users, GraduationCap, TrendingUp, ExternalLink, Trash2,
+  Building2, Users, GraduationCap, TrendingUp, ExternalLink, Trash2, KeyRound,
 } from "lucide-react";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
@@ -59,6 +59,13 @@ export default function OrganizationsPage() {
   const [createErr,  setCreateErr]  = useState("");
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Password reset state
+  const [resetOrg,  setResetOrg]   = useState<any>(null);
+  const [resetPass, setResetPass]  = useState("");
+  const [resetSaving, setResetSaving] = useState(false);
+  const [resetErr,  setResetErr]   = useState("");
+  const [resetOk,   setResetOk]    = useState(false);
 
   const filtered = orgs.filter(o => {
     const matchSearch = !search || o.name.toLowerCase().includes(search.toLowerCase()) || o.subdomain.includes(search.toLowerCase());
@@ -117,6 +124,23 @@ export default function OrganizationsPage() {
     mutate();
   }
 
+  async function resetAdminPassword() {
+    if (!resetOrg || resetPass.length < 6) { setResetErr("Kamida 6 belgi kiriting"); return; }
+    setResetSaving(true); setResetErr(""); setResetOk(false);
+    try {
+      const res = await fetch(`/api/admode/organizations/${resetOrg.id}/reset-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: resetPass }),
+      });
+      const d = await res.json();
+      if (!res.ok) { setResetErr(d.error ?? "Xatolik"); return; }
+      setResetOk(true);
+      setTimeout(() => { setResetOrg(null); setResetPass(""); setResetOk(false); }, 1400);
+    } catch { setResetErr("Serverga ulanib bo'lmadi"); }
+    finally { setResetSaving(false); }
+  }
+
   async function deleteOrg(id: string, name: string) {
     if (!confirm(`"${name}" tashkilotini o'chirasizmi? Bu amalni qaytarib bo'lmaydi!`)) return;
     setDeletingId(id);
@@ -128,6 +152,57 @@ export default function OrganizationsPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-5">
+      {/* Password reset modal */}
+      {resetOrg && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-neutral-900 border border-neutral-800 rounded-2xl p-5 shadow-2xl">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="text-[15px] font-bold text-white">Admin parolini tiklash</h3>
+                <p className="text-[12px] text-neutral-500 mt-0.5">{resetOrg.name} — Super Admin</p>
+              </div>
+              <button
+                onClick={() => { setResetOrg(null); setResetPass(""); setResetErr(""); }}
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-neutral-500 hover:text-white hover:bg-neutral-800 transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-[11px] font-semibold text-neutral-400 block mb-1.5">Yangi parol</label>
+                <input
+                  type="password"
+                  placeholder="Kamida 6 belgi"
+                  value={resetPass}
+                  onChange={e => { setResetPass(e.target.value); setResetErr(""); }}
+                  onKeyDown={e => e.key === "Enter" && resetAdminPassword()}
+                  autoFocus
+                  className="w-full h-10 px-3 bg-neutral-800 border border-neutral-700 rounded-xl text-[13px] text-white placeholder-neutral-600 outline-none focus:border-blue-500 transition-colors"
+                />
+              </div>
+              {resetErr && (
+                <p className="text-[12px] text-red-400 bg-red-900/20 border border-red-900/40 rounded-lg px-3 py-2">{resetErr}</p>
+              )}
+              {resetOk && (
+                <p className="text-[12px] text-green-400 bg-green-900/20 border border-green-900/40 rounded-lg px-3 py-2">
+                  Parol muvaffaqiyatli yangilandi!
+                </p>
+              )}
+              <div className="flex gap-2 pt-1">
+                <button onClick={resetAdminPassword} disabled={resetSaving}
+                  className="flex-1 h-9 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-[13px] font-semibold rounded-xl transition-colors">
+                  {resetSaving ? "Saqlanmoqda..." : "Yangilash"}
+                </button>
+                <button onClick={() => { setResetOrg(null); setResetPass(""); setResetErr(""); }}
+                  className="h-9 px-4 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-[13px] rounded-xl transition-colors">
+                  Bekor
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Create modal */}
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
@@ -351,6 +426,12 @@ export default function OrganizationsPage() {
                         {/* Actions */}
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => { setResetOrg(org); setResetPass(""); setResetErr(""); setResetOk(false); }}
+                              title="Admin parolini tiklash"
+                              className="w-7 h-7 flex items-center justify-center rounded-lg bg-neutral-800 hover:bg-amber-900/30 text-neutral-500 hover:text-amber-400 transition-colors">
+                              <KeyRound className="w-3 h-3" />
+                            </button>
                             <button onClick={() => toggleActive(org.id, org.isActive)} disabled={togglingId === org.id}
                               className={cn(
                                 "text-[10px] font-semibold px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40",
