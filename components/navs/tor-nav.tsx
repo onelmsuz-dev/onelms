@@ -22,17 +22,22 @@ const ROLE_LABELS: Record<Role, string> = {
 export function TorNav() {
   const pathname = usePathname();
   const router   = useRouter();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const { data: session } = useSession();
   const role = (session?.user?.role ?? "TEACHER") as Role;
 
-  // Filter nav items by role
-  const allItems = navSections
-    .flatMap(s => s.items)
-    .filter(item => {
-      const allowed = NAV_PERMISSIONS[item.href];
-      return !allowed || allowed.includes(role);
-    });
+  // Filter nav sections and items by role
+  const filteredSections = navSections
+    .map(s => ({
+      ...s,
+      items: s.items.filter(item => {
+        const allowed = NAV_PERMISSIONS[item.href];
+        return !allowed || allowed.includes(role);
+      }),
+    }))
+    .filter(s => s.items.length > 0);
+
+  const allItems = filteredSections.flatMap(s => s.items);
 
   return (
     <aside className={cn(
@@ -85,28 +90,41 @@ export function TorNav() {
           )}
         </button>
 
-        {/* Nav items */}
-        {allItems.map(item => {
+        {/* Nav sections */}
+        {open ? filteredSections.map(section => (
+          <div key={section.id} className="mb-1">
+            <p className="text-[10px] font-bold text-neutral-400 dark:text-neutral-600 uppercase tracking-wider px-2.5 mb-1 mt-2">
+              {section.label}
+            </p>
+            {section.items.map(item => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
+              return (
+                <Link key={item.href} href={item.href}
+                  className={cn(
+                    "flex items-center h-9 rounded-xl transition-colors px-2.5 gap-3",
+                    isActive
+                      ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
+                      : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                  )}>
+                  <Icon className="w-4 h-4 shrink-0" />
+                  <span className="text-[13px] font-medium whitespace-nowrap">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        )) : allItems.map(item => {
           const Icon = item.icon;
           const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
           return (
-            <Link
-              key={item.href}
-              href={item.href}
+            <Link key={item.href} href={item.href}
               className={cn(
-                "flex items-center h-10 rounded-xl transition-colors",
-                open ? "px-2.5 gap-3" : "justify-center",
+                "flex items-center h-10 rounded-xl transition-colors justify-center",
                 isActive
                   ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
                   : "text-neutral-400 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-              )}
-            >
+              )}>
               <Icon className="w-5 h-5 shrink-0" />
-              {open && (
-                <span className="rail-label-in text-[13px] font-medium whitespace-nowrap">
-                  {item.label}
-                </span>
-              )}
             </Link>
           );
         })}
