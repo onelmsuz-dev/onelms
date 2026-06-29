@@ -1,53 +1,50 @@
-const stats = [
+import { ShieldCheck, Zap, Globe, HeadphonesIcon } from "lucide-react";
+
+const pillars = [
   {
-    value: "500+",
-    label: "O'quv markaz",
-    description: "O'zbekiston bo'ylab faol foydalanuvchilar",
+    icon: Zap,
+    title: "Tezkor ishlash",
+    description: "Har qanday qurilmadan bir xil tez — telefon, planshet, kompyuter",
   },
   {
-    value: "50,000+",
-    label: "Faol o'quvchi",
-    description: "Platformada ro'yxatdan o'tgan o'quvchilar",
+    icon: ShieldCheck,
+    title: "Xavfsiz ma'lumotlar",
+    description: "Ma'lumotlaringiz shifrlangan va har kuni zaxiralanadi",
   },
   {
-    value: "99.9%",
-    label: "Ishlash vaqti",
-    description: "Kafolatlangan uptime SLA",
+    icon: Globe,
+    title: "O'rnatish kerak emas",
+    description: "Brauzerdan kirasiz — hech qanday dastur yuklab olish shart emas",
   },
   {
-    value: "4.9/5",
-    label: "Foydalanuvchi bahosi",
-    description: "O'quv markaz egalari reytingi",
+    icon: HeadphonesIcon,
+    title: "O'zbek tilidagi yordam",
+    description: "Ish vaqtida o'zbek tilida texnik va metodologik yordam",
   },
 ];
 
 export function StatsSection() {
   return (
     <section
-      className="bg-slate-900 py-12 sm:py-14 lg:py-16"
-      aria-label="OneRoom statistika ko'rsatkichlari"
+      className="bg-slate-900 py-12 sm:py-16"
+      aria-label="OneRoom afzalliklari"
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <dl className="grid grid-cols-2 gap-8 sm:gap-10 lg:grid-cols-4">
-          {stats.map((stat, i) => (
+        <dl className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          {pillars.map(({ icon: Icon, title, description }, i) => (
             <div
-              key={stat.label}
-              className={`text-center ${
-                i < 2 ? "lg:border-r lg:border-slate-700/60" : ""
-              } ${i === 2 ? "lg:border-r lg:border-slate-700/60" : ""}`}
+              key={title}
+              className={`flex items-start gap-4 ${
+                i < 3 ? "lg:border-r lg:border-slate-700/50 lg:pr-8" : ""
+              }`}
             >
-              <dt className="sr-only">{stat.label}</dt>
-              <dd>
-                <span className="block text-3xl font-extrabold tabular-nums text-white sm:text-4xl lg:text-5xl">
-                  {stat.value}
-                </span>
-                <span className="mt-2 block text-sm font-semibold text-blue-400 sm:text-base">
-                  {stat.label}
-                </span>
-                <span className="mt-1 block text-xs text-slate-500 sm:text-sm">
-                  {stat.description}
-                </span>
-              </dd>
+              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-600/20">
+                <Icon className="h-4.5 w-4.5 text-blue-400" aria-hidden="true" />
+              </div>
+              <div>
+                <dt className="text-sm font-semibold text-white">{title}</dt>
+                <dd className="mt-1 text-xs text-slate-400 leading-relaxed">{description}</dd>
+              </div>
             </div>
           ))}
         </dl>

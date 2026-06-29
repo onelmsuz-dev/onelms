@@ -8,15 +8,15 @@ const bullets = [
 ];
 
 const mockStats = [
-  { label: "Jami o'quvchilar", value: "248", color: "bg-blue-50 text-blue-700 border-blue-100" },
-  { label: "Bu oy to'lov", value: "12.4M", color: "bg-emerald-50 text-emerald-700 border-emerald-100" },
-  { label: "Faol kurslar", value: "18", color: "bg-violet-50 text-violet-700 border-violet-100" },
+  { label: "Jami o'quvchilar", value: "—", color: "bg-blue-50 text-blue-700 border-blue-100" },
+  { label: "Bu oy to'lov", value: "—", color: "bg-emerald-50 text-emerald-700 border-emerald-100" },
+  { label: "Faol kurslar", value: "—", color: "bg-violet-50 text-violet-700 border-violet-100" },
 ];
 
 const mockPayments = [
-  { name: "Jasur Toshmatov", amount: "+350,000 so'm" },
-  { name: "Nilufar Karimova", amount: "+420,000 so'm" },
-  { name: "Bobur Yusupov", amount: "+280,000 so'm" },
+  { name: "O'quvchi A", amount: "+••• so'm" },
+  { name: "O'quvchi B", amount: "+••• so'm" },
+  { name: "O'quvchi C", amount: "+••• so'm" },
 ];
 
 const sidebarItems = ["Dashboard", "O'quvchilar", "To'lovlar", "Jadval", "Davomot", "Hisobotlar"];
@@ -43,7 +43,7 @@ export function HeroSection() {
           <div className="mb-5 flex justify-start sm:justify-center">
             <span className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[10px] font-semibold text-blue-700 sm:px-3.5 sm:text-xs">
               <span className="h-1.5 w-1.5 rounded-full bg-blue-500 shrink-0" />
-              O'zbekistondagi №1 o'quv markaz platformasi
+              O'quv markazlar uchun zamonaviy LMS va CRM
             </span>
           </div>
 

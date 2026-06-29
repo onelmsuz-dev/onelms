@@ -1,16 +1,10 @@
 import Link from "next/link";
-import { ArrowRight, ShieldCheck, Clock3, Headphones, Sparkles } from "lucide-react";
+import { ArrowRight, ShieldCheck, Clock3, Headphones } from "lucide-react";
 
 const guarantees = [
   { icon: ShieldCheck, text: "Ma'lumotlar xavfsizligi kafolatlangan" },
   { icon: Clock3,      text: "14 kun bepul — karta kerak emas" },
   { icon: Headphones,  text: "O'zbek tilida texnik yordam" },
-];
-
-const stats = [
-  { value: "500+", label: "Faol o'quv markaz" },
-  { value: "12 000+", label: "O'quvchi boshqarilmoqda" },
-  { value: "98%", label: "Mijoz mamnuniyati" },
 ];
 
 export function CtaSection() {
@@ -21,10 +15,7 @@ export function CtaSection() {
       aria-labelledby="cta-heading"
     >
       {/* Glow effects */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 overflow-hidden"
-      >
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[700px] rounded-full bg-blue-600/20 blur-[120px]" />
         <div className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full bg-indigo-600/15 blur-[100px]" />
       </div>
@@ -41,15 +32,6 @@ export function CtaSection() {
       />
 
       <div className="relative mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
-
-        {/* Badge */}
-        <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1.5 mb-6">
-          <Sparkles className="h-3.5 w-3.5 text-blue-400" />
-          <span className="text-xs font-semibold text-blue-400 tracking-wide uppercase">
-            Hozir 500+ markaz ishlatmoqda
-          </span>
-        </div>
-
         <h2
           id="cta-heading"
           className="text-3xl font-extrabold text-white sm:text-4xl lg:text-5xl leading-tight"
@@ -65,18 +47,8 @@ export function CtaSection() {
           jadval va davomatni bir ekrandan boshqaring.
         </p>
 
-        {/* Stats row */}
-        <div className="mt-10 grid grid-cols-3 gap-4 sm:gap-6 max-w-lg mx-auto">
-          {stats.map(({ value, label }) => (
-            <div key={label} className="rounded-2xl border border-white/8 bg-white/5 px-3 py-4">
-              <p className="text-xl sm:text-2xl font-black text-white">{value}</p>
-              <p className="mt-0.5 text-[11px] sm:text-xs text-slate-400 leading-snug">{label}</p>
-            </div>
-          ))}
-        </div>
-
         {/* Guarantees */}
-        <ul className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
+        <ul className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
           {guarantees.map(({ icon: Icon, text }) => (
             <li key={text} className="flex items-center gap-2 text-sm text-slate-300">
               <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/20 shrink-0">
