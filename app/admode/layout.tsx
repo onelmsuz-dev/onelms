@@ -42,27 +42,27 @@ export default function AdmodeLayout({ children }: { children: React.ReactNode }
   return (
     <div className="min-h-screen bg-neutral-950 flex">
       {/* Sidebar */}
-      <aside className="w-56 shrink-0 flex flex-col border-r border-neutral-800 bg-neutral-900">
+      <aside className="w-56 shrink-0 sticky top-0 h-screen flex flex-col border-r border-white/10 bg-neutral-900">
 
         {/* Logo */}
-        <div className="h-14 flex items-center gap-2.5 px-4 border-b border-neutral-800">
+        <div className="h-14 shrink-0 flex items-center gap-2.5 px-4 border-b border-white/10">
           <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center shrink-0">
             <ShieldCheck className="w-3.5 h-3.5 text-white" />
           </div>
           <div>
             <p className="text-[13px] font-bold text-white leading-none">OneRoom</p>
-            <p className="text-[10px] text-neutral-500 leading-none mt-0.5">Platform Admin</p>
+            <p className="text-[10px] text-neutral-400 leading-none mt-0.5">Platform Admin</p>
           </div>
         </div>
 
         {/* Nav sections */}
-        <nav className="flex-1 overflow-y-auto py-3 px-2 flex flex-col gap-4">
+        <nav className="flex-1 min-h-0 overflow-y-auto py-4 px-2 space-y-5">
           {SECTIONS.map((section) => (
             <div key={section.label}>
-              <p className="text-[10px] font-bold text-neutral-600 uppercase tracking-widest px-3 mb-1">
+              <p className="text-[10px] font-semibold text-neutral-500 uppercase tracking-widest px-3 mb-1.5">
                 {section.label}
               </p>
-              <div className="flex flex-col gap-0.5">
+              <div className="space-y-0.5">
                 {section.items.map(({ href, label, icon: Icon }) => {
                   const active = href === "/admode"
                     ? pathname === "/admode"
@@ -70,10 +70,10 @@ export default function AdmodeLayout({ children }: { children: React.ReactNode }
                   return (
                     <Link key={href} href={href}
                       className={cn(
-                        "flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium transition-all",
+                        "flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors",
                         active
-                          ? "bg-blue-600 text-white shadow-sm"
-                          : "text-neutral-400 hover:text-white hover:bg-neutral-800"
+                          ? "bg-blue-600 text-white"
+                          : "text-neutral-400 hover:text-white hover:bg-white/8"
                       )}>
                       <Icon className="w-4 h-4 shrink-0" />
                       {label}
@@ -86,9 +86,9 @@ export default function AdmodeLayout({ children }: { children: React.ReactNode }
         </nav>
 
         {/* User */}
-        <div className="p-3 border-t border-neutral-800">
-          <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-neutral-800 transition-colors group">
-            <div className="w-7 h-7 rounded-full bg-blue-600/20 border border-blue-600/30 flex items-center justify-center shrink-0">
+        <div className="shrink-0 p-3 border-t border-white/10">
+          <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-white/8 transition-colors group">
+            <div className="w-7 h-7 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center shrink-0">
               <span className="text-[11px] font-bold text-blue-400">
                 {session?.user?.name?.[0]?.toUpperCase() ?? "A"}
               </span>
