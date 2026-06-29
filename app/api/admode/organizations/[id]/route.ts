@@ -10,6 +10,18 @@ const updateSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+async function removeVercelDomain(subdomain: string) {
+  const token     = process.env.VERCEL_API_TOKEN;
+  const projectId = process.env.VERCEL_PROJECT_ID;
+  if (!token || !projectId) return;
+
+  const domain = `${subdomain}.oneroom.uz`;
+  await fetch(`https://api.vercel.com/v9/projects/${projectId}/domains/${domain}`, {
+    method:  "DELETE",
+    headers: { "Authorization": `Bearer ${token}` },
+  });
+}
+
 export const PATCH = guard(
   ["PLATFORM_ADMIN"],
   async (req: NextRequest, ctx: any) => {
@@ -36,5 +48,9 @@ export const DELETE = guard(["PLATFORM_ADMIN"], async (_req: NextRequest, ctx: a
   if (!org) return err("Organization topilmadi", 404);
 
   await db.organization.delete({ where: { id } });
+
+  // Vercel dan subdomain o'chirish
+  await removeVercelDomain(org.subdomain).catch(() => null);
+
   return ok({ success: true });
 });

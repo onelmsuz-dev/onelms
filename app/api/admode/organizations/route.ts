@@ -17,6 +17,19 @@ const createSchema = z.object({
   adminPassword: z.string().min(6),
 });
 
+async function addVercelDomain(subdomain: string) {
+  const token     = process.env.VERCEL_API_TOKEN;
+  const projectId = process.env.VERCEL_PROJECT_ID;
+  if (!token || !projectId) return;
+
+  const domain = `${subdomain}.oneroom.uz`;
+  await fetch(`https://api.vercel.com/v10/projects/${projectId}/domains`, {
+    method:  "POST",
+    headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+    body:    JSON.stringify({ name: domain }),
+  });
+}
+
 export const POST = guard(["PLATFORM_ADMIN"], async (req: NextRequest) => {
   const body   = await req.json().catch(() => null);
   const parsed = createSchema.safeParse(body);
@@ -47,6 +60,9 @@ export const POST = guard(["PLATFORM_ADMIN"], async (req: NextRequest) => {
 
     return newOrg;
   });
+
+  // Vercel ga subdomain qo'shish (background, xato bo'lsa ham org yaratilgan)
+  await addVercelDomain(subdomain).catch(() => null);
 
   return ok(org, 201);
 });
