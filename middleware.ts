@@ -4,12 +4,12 @@ import { authConfig } from "./auth.config";
 const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
-  const host     = req.headers.get("host") ?? "";
-  const hostname = host.split(":")[0];
+  // nextUrl.hostname Vercel'da ishonchli ishlaydi
+  const hostname = req.nextUrl.hostname;
   const parts    = hostname.split(".");
 
   // Subdomain aniqlash: demo.oneroom.uz → "demo"
-  const isSubdomain = parts.length >= 3 && parts[0] !== "www";
+  const isSubdomain = parts.length >= 3 && parts[0] !== "www" && parts[0] !== "onelms-snowy";
   const isLoggedIn  = !!req.auth?.user;
   const { pathname } = req.nextUrl;
 
