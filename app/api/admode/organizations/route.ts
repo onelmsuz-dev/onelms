@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { guard, ok, err } from "@/lib/api-guard";
 import { z } from "zod";
@@ -26,7 +27,7 @@ export const POST = guard(["PLATFORM_ADMIN"], async (req: NextRequest) => {
   const exists = await db.organization.findUnique({ where: { subdomain } });
   if (exists) return err("Bu subdomain band", 409);
 
-  const org = await db.$transaction(async (tx) => {
+  const org = await db.$transaction(async (tx: Prisma.TransactionClient) => {
     const newOrg = await tx.organization.create({
       data: { name, subdomain, plan, isActive: true },
     });
