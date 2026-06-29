@@ -1,19 +1,22 @@
 "use client";
 
-import { useState, useTransition, useEffect, Suspense } from "react";
+import { useState, useTransition, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Eye, EyeOff, Lock, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 function getSubdomain(): string {
-  if (typeof window === "undefined") return "demo";
+  if (typeof window === "undefined") return "";
   const host  = window.location.hostname;
-  if (host === "localhost" || host === "127.0.0.1") return "demo";
+  if (host === "localhost" || host === "127.0.0.1") return "";
   const parts = host.split(".");
-  return parts.length >= 3 ? parts[0] : "demo";
+  // markaz.oneroom.uz → parts = ["markaz","oneroom","uz"] → parts[0]
+  // oneroom.uz → parts = ["oneroom","uz"] → no subdomain
+  return parts.length >= 3 ? parts[0] : "";
 }
 
 function LoginForm() {
@@ -21,22 +24,25 @@ function LoginForm() {
   const params      = useSearchParams();
   const callbackUrl = params.get("callbackUrl") ?? "/dashboard";
 
-  const [subdomain,    setSubdomain]    = useState("demo");
-  const [phone,        setPhone]        = useState("+998901234567");
-  const [password,     setPassword]     = useState("admin123");
-  const [showPass,     setShowPass]     = useState(false);
-  const [error,        setError]        = useState("");
-  const [isPending,    startTransition] = useTransition();
-
-  useEffect(() => { setSubdomain(getSubdomain()); }, []);
+  const [phone,     setPhone]     = useState("");
+  const [password,  setPassword]  = useState("");
+  const [showPass,  setShowPass]  = useState(false);
+  const [error,     setError]     = useState("");
+  const [isPending, startTransition] = useTransition();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     const phoneDigits = phone.replace(/\D/g, "");
     if (phoneDigits.length !== 12) { setError("To'liq telefon raqam kiriting"); return; }
+    if (!password) { setError("Parol kiriting"); return; }
+
+    const subdomain = getSubdomain();
+
     startTransition(async () => {
-      const res = await signIn("credentials", { phone, password, subdomain, redirect: false });
+      const res = await signIn("credentials", {
+        phone, password, subdomain, redirect: false,
+      });
       if (res?.error) {
         setError("Telefon raqam yoki parol noto'g'ri");
       } else {
@@ -50,7 +56,9 @@ function LoginForm() {
     <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xl p-6 space-y-5">
       <div>
         <h2 className="text-[17px] font-bold text-neutral-900 dark:text-neutral-100">Kirish</h2>
-        <p className="text-[13px] text-neutral-500 dark:text-neutral-400 mt-0.5">Tizimga kirish uchun ma'lumotlarni kiriting</p>
+        <p className="text-[13px] text-neutral-500 dark:text-neutral-400 mt-0.5">
+          Telefon raqam va parolingizni kiriting
+        </p>
       </div>
 
       {error && (
@@ -67,10 +75,11 @@ function LoginForm() {
           </label>
           <PhoneInput
             value={phone}
-            onChange={setPhone}
-            error={error.includes("telefon")}
+            onChange={v => { setPhone(v); setError(""); }}
+            error={!!error && error.includes("telefon")}
           />
         </div>
+
         <div className="space-y-1.5">
           <label className="text-[12px] font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wide">
             Parol
@@ -81,34 +90,42 @@ function LoginForm() {
               type={showPass ? "text" : "password"}
               placeholder="••••••••"
               value={password}
-              onChange={e => setPassword(e.target.value)}
+              onChange={e => { setPassword(e.target.value); setError(""); }}
               required
               className="pl-9 pr-10 h-10"
             />
-            <button type="button" onClick={() => setShowPass(v => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors">
+            <button
+              type="button"
+              onClick={() => setShowPass(v => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
+              aria-label={showPass ? "Parolni yashirish" : "Parolni ko'rsatish"}
+            >
               {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
         </div>
-        <button type="submit" disabled={isPending}
+
+        <button
+          type="submit"
+          disabled={isPending}
           className={cn(
             "w-full h-10 rounded-xl font-semibold text-[14px] transition-all",
             "bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-100 dark:hover:bg-neutral-200",
             "text-white dark:text-neutral-900",
             isPending && "opacity-60 cursor-not-allowed"
-          )}>
+          )}
+        >
           {isPending ? "Kirilmoqda..." : "Kirish"}
         </button>
       </form>
 
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/40 rounded-xl p-3 text-[12px] text-blue-700 dark:text-blue-400 space-y-1">
-        <p className="font-semibold mb-1">Demo kirish:</p>
-        <p>👤 Super Admin: <span className="font-mono">+998901234567 / admin123</span></p>
-        <p>📚 O'qituvchi:  <span className="font-mono">+998901002000 / teacher123</span></p>
-        <p>🧾 Qabulxona:   <span className="font-mono">+998901111111 / rec123</span></p>
-        <p>💰 Buxgalter:   <span className="font-mono">+998902222222 / acc123</span></p>
-      </div>
+      <p className="text-center text-[12px] text-neutral-400 dark:text-neutral-500">
+        Parolingizni unutdingizmi?{" "}
+        <a href="https://t.me/oneroomuz" target="_blank" rel="noopener noreferrer"
+          className="text-blue-600 hover:underline font-medium">
+          Telegram orqali bog'laning
+        </a>
+      </p>
     </div>
   );
 }
@@ -118,13 +135,15 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-neutral-950 dark:via-neutral-900 dark:to-neutral-950 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="w-14 h-14 bg-neutral-900 dark:bg-neutral-100 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
-            <span className="text-white dark:text-neutral-900 font-black text-2xl">O</span>
+          <div className="w-14 h-14 rounded-2xl overflow-hidden mx-auto mb-3 shadow-lg">
+            <Image src="/logo.png" alt="OneRoom" width={56} height={56} className="w-full h-full object-cover" />
           </div>
           <h1 className="text-2xl font-black text-neutral-900 dark:text-neutral-100">OneRoom</h1>
           <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">Smart O'quv Markaz Tizimi</p>
         </div>
-        <Suspense fallback={<div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xl p-6 h-64 animate-pulse" />}>
+        <Suspense fallback={
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xl p-6 h-64 animate-pulse" />
+        }>
           <LoginForm />
         </Suspense>
       </div>

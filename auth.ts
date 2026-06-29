@@ -8,7 +8,7 @@ import { authConfig } from "@/auth.config";
 const loginSchema = z.object({
   phone:     z.string().min(1),
   password:  z.string().min(1),
-  subdomain: z.string().min(1),
+  subdomain: z.string().optional().default(""),
 });
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -36,7 +36,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           };
         }
 
-        // Oddiy mijoz: subdomain orqali org topiladi
+        // Subdomensiz kirish: telefon bo'yicha istalgan orgdan qidirish
+        if (!subdomain || subdomain === "demo" || subdomain === "www") {
+          const user = await db.user.findFirst({
+            where: { phone, organizationId: { not: null } },
+            include: { organization: { select: { isActive: true } } },
+          });
+          if (!user || !user.isActive) return null;
+          if (!user.organization?.isActive) return null;
+
+          const valid = await bcrypt.compare(password, user.password);
+          if (!valid) return null;
+
+          let teacherId: string | null = null;
+          if (user.role === "TEACHER") {
+            const teacher = await db.teacher.findUnique({
+              where: { userId: user.id }, select: { id: true },
+            });
+            teacherId = teacher?.id ?? null;
+          }
+
+          return {
+            id: user.id, name: user.name, email: user.email ?? "",
+            phone: user.phone, role: user.role,
+            teacherId, organizationId: user.organizationId,
+          };
+        }
+
+        // Subdomenli kirish: subdomain orqali org topiladi
         const org = await db.organization.findUnique({ where: { subdomain } });
         if (!org || !org.isActive) return null;
 
