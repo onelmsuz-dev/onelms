@@ -1,38 +1,87 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { ShieldCheck, LogOut } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  LayoutDashboard, Building2, CreditCard, LogOut, ShieldCheck, ChevronRight,
+} from "lucide-react";
+
+const NAV = [
+  { href: "/admode",              label: "Dashboard",      icon: LayoutDashboard },
+  { href: "/admode/organizations", label: "Tashkilotlar",  icon: Building2 },
+  { href: "/admode/subscriptions", label: "Obunalar",      icon: CreditCard },
+];
 
 export default function AdmodeLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const { data: session } = useSession();
 
+  if (pathname === "/admode/login") return <>{children}</>;
+
   return (
-    <div className="min-h-screen bg-neutral-950 text-white">
-      {/* Top bar */}
-      <header className="h-14 border-b border-neutral-800 flex items-center justify-between px-6">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <ShieldCheck className="w-4 h-4 text-white" />
+    <div className="min-h-screen bg-neutral-950 flex">
+      {/* Sidebar */}
+      <aside className="w-56 shrink-0 flex flex-col border-r border-neutral-800 bg-neutral-900">
+        {/* Logo */}
+        <div className="h-14 flex items-center gap-2.5 px-4 border-b border-neutral-800">
+          <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center shrink-0">
+            <ShieldCheck className="w-3.5 h-3.5 text-white" />
           </div>
           <div>
-            <span className="font-bold text-[14px] text-white">OneRoom</span>
-            <span className="text-neutral-500 text-[12px] ml-2">Platform Admin</span>
+            <p className="text-[13px] font-bold text-white leading-none">OneRoom</p>
+            <p className="text-[10px] text-neutral-500 leading-none mt-0.5">Platform Admin</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-[13px] text-neutral-400">{session?.user?.name}</span>
-          <button
-            onClick={() => signOut({ callbackUrl: "/admode/login" })}
-            className="flex items-center gap-1.5 text-[12px] text-neutral-500 hover:text-red-400 transition-colors">
-            <LogOut className="w-3.5 h-3.5" />
-            Chiqish
-          </button>
-        </div>
-      </header>
 
-      <main className="p-6">
-        {children}
-      </main>
+        {/* Nav */}
+        <nav className="flex-1 py-3 px-2 space-y-0.5">
+          {NAV.map(({ href, label, icon: Icon }) => {
+            const active = href === "/admode" ? pathname === "/admode" : pathname.startsWith(href);
+            return (
+              <Link key={href} href={href}
+                className={cn(
+                  "flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium transition-all",
+                  active
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "text-neutral-400 hover:text-white hover:bg-neutral-800"
+                )}>
+                <Icon className="w-4 h-4 shrink-0" />
+                {label}
+                {active && <ChevronRight className="w-3.5 h-3.5 ml-auto opacity-60" />}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* User */}
+        <div className="p-3 border-t border-neutral-800">
+          <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-neutral-800 transition-colors group">
+            <div className="w-7 h-7 rounded-full bg-blue-600/20 border border-blue-600/30 flex items-center justify-center shrink-0">
+              <span className="text-[11px] font-bold text-blue-400">
+                {session?.user?.name?.[0] ?? "A"}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[12px] font-semibold text-white truncate">{session?.user?.name}</p>
+              <p className="text-[10px] text-neutral-500">Platform Admin</p>
+            </div>
+            <button
+              onClick={() => signOut({ callbackUrl: "/admode/login" })}
+              className="opacity-0 group-hover:opacity-100 transition-opacity text-neutral-500 hover:text-red-400">
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main */}
+      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+        <main className="flex-1 overflow-auto p-6">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
