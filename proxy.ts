@@ -49,15 +49,17 @@ export const proxy = auth((req) => {
   const subdomain = getSubdomainFromReq(req);
 
   if (subdomain) {
+    // Subdomain URL'ni to'g'ri qurish: https://demo.oneroom.uz/login
+    const origin = `https://${subdomain}.oneroom.uz`;
     if (pathname === "/") {
       const target = isLoggedIn ? "/dashboard" : "/login";
-      return Response.redirect(new URL(target, req.nextUrl));
+      return Response.redirect(origin + target);
     }
     if (pathname === "/login" && isLoggedIn) {
-      return Response.redirect(new URL("/dashboard", req.nextUrl));
+      return Response.redirect(origin + "/dashboard");
     }
     if (pathname !== "/login" && !isLoggedIn) {
-      return Response.redirect(new URL("/login", req.nextUrl));
+      return Response.redirect(origin + "/login");
     }
     const res = NextResponse.next();
     res.headers.set("x-org-subdomain", subdomain);
