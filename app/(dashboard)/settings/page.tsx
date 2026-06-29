@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import type { Branch, Room } from "@/types";
 import {
   Shield, Plus, Trash2, User, Building, Bell,
-  MapPin, DoorOpen, Phone, Users, CheckCircle, XCircle, Pencil,
+  MapPin, DoorOpen, Phone, Users, CheckCircle, XCircle, Pencil, KeyRound,
 } from "lucide-react";
 import { useUsers } from "@/lib/hooks/useUsers";
 import { useBranches } from "@/lib/hooks/useBranches";
@@ -91,6 +91,12 @@ export default function SettingsPage() {
   const [userSaving,     setUserSaving]     = useState(false);
   const [userError,      setUserError]      = useState("");
 
+  // Password reset
+  const [resetUser,      setResetUser]      = useState<any>(null);
+  const [resetPassword,  setResetPassword]  = useState("");
+  const [resetSaving,    setResetSaving]    = useState(false);
+  const [resetError,     setResetError]     = useState("");
+
   function openCreateUser() {
     setEditUser(null); setUserForm(EMPTY_USER); setUserError(""); setShowUserModal(true);
   }
@@ -132,6 +138,21 @@ export default function SettingsPage() {
       body: JSON.stringify({ isActive: !u.isActive }),
     });
     mutate("/api/users");
+  }
+
+  async function confirmResetPassword() {
+    if (!resetUser || resetPassword.length < 6) { setResetError("Kamida 6 belgi kiriting"); return; }
+    setResetSaving(true); setResetError("");
+    try {
+      const res = await fetch(`/api/users/${resetUser.id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: resetPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setResetError(data.error ?? "Xatolik"); return; }
+      setResetUser(null); setResetPassword("");
+    } catch { setResetError("Serverga ulanib bo'lmadi"); }
+    finally { setResetSaving(false); }
   }
 
   async function confirmDeleteUser() {
@@ -283,6 +304,44 @@ export default function SettingsPage() {
         )}
       </Modal>
 
+      {/* Password reset modal */}
+      <Modal
+        open={!!resetUser}
+        onClose={() => { setResetUser(null); setResetPassword(""); setResetError(""); }}
+        title="Parolni tiklash"
+        subtitle={resetUser ? `${resetUser.name} uchun yangi parol o'rnating` : ""}
+        size="sm"
+        footer={
+          <>
+            <Button onClick={confirmResetPassword} disabled={resetSaving}
+              className="flex-1 h-9 bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 text-white text-[13px]">
+              {resetSaving ? "Saqlanmoqda..." : "Parolni yangilash"}
+            </Button>
+            <Button variant="outline" className="h-9 px-4 text-[13px]"
+              onClick={() => { setResetUser(null); setResetPassword(""); setResetError(""); }}>
+              Bekor
+            </Button>
+          </>
+        }
+      >
+        <FormField label="Yangi parol" required>
+          <Input
+            type="password"
+            placeholder="Kamida 6 belgi"
+            value={resetPassword}
+            onChange={e => { setResetPassword(e.target.value); setResetError(""); }}
+            className="h-10"
+            autoFocus
+          />
+        </FormField>
+        {resetError && (
+          <div className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/40 rounded-xl px-3 py-2.5">
+            <svg className="w-3.5 h-3.5 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" strokeWidth="2"/><path d="M12 8v4m0 4h.01" strokeWidth="2" strokeLinecap="round"/></svg>
+            <p className="text-[12px] font-medium text-red-600 dark:text-red-400">{resetError}</p>
+          </div>
+        )}
+      </Modal>
+
       <ConfirmDeleteModal
         open={!!deleteUser}
         onClose={() => setDeleteUser(null)}
@@ -430,6 +489,12 @@ export default function SettingsPage() {
                                     {cfg.label}
                                   </span>
                                 )}
+                                <button
+                                  onClick={() => { setResetUser(u); setResetPassword(""); setResetError(""); }}
+                                  title="Parolni tiklash"
+                                  className="w-7 h-7 flex items-center justify-center rounded-lg text-neutral-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
+                                  <KeyRound className="w-3.5 h-3.5" />
+                                </button>
                                 <button onClick={() => openEditUser(u)}
                                   title="Tahrirlash"
                                   className="w-7 h-7 flex items-center justify-center rounded-lg text-neutral-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
