@@ -27,26 +27,50 @@ export const GET = guard(
       });
     }
 
-    const now        = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const now           = new Date();
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthEnd   = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const [studentCount, groupCount, leadCount, teacherCount, monthPayments, debtorCount] =
-      await Promise.all([
-        db.student.count({ where: { ...orgFilter } }),
-        db.group.count({ where: { status: "ACTIVE", ...orgFilter } }),
-        db.lead.count({ where: { status: { in: ["YANGI", "ALOQA_QILINGAN"] }, ...orgFilter } }),
-        db.teacher.count({ where: { status: "ACTIVE", ...orgFilter } }),
-        db.payment.aggregate({ where: { date: { gte: monthStart }, ...orgFilter }, _sum: { amount: true } }),
-        db.student.count({ where: { balance: { lt: 0 }, ...orgFilter } }),
-      ]);
+    const [
+      studentCount,
+      prevStudentCount,
+      groupCount,
+      leadCount,
+      prevLeadCount,
+      teacherCount,
+      monthPayments,
+      prevMonthPayments,
+      debtorCount,
+    ] = await Promise.all([
+      db.student.count({ where: { ...orgFilter } }),
+      db.student.count({ where: { ...orgFilter, createdAt: { lt: thisMonthStart } } }),
+      db.group.count({ where: { status: "ACTIVE", ...orgFilter } }),
+      db.lead.count({ where: { status: { in: ["YANGI", "ALOQA_QILINGAN"] }, ...orgFilter } }),
+      db.lead.count({ where: { status: { in: ["YANGI", "ALOQA_QILINGAN"] }, ...orgFilter, createdAt: { lt: thisMonthStart } } }),
+      db.teacher.count({ where: { status: "ACTIVE", ...orgFilter } }),
+      db.payment.aggregate({ where: { date: { gte: thisMonthStart }, ...orgFilter }, _sum: { amount: true } }),
+      db.payment.aggregate({ where: { date: { gte: lastMonthStart, lt: lastMonthEnd }, ...orgFilter }, _sum: { amount: true } }),
+      db.student.count({ where: { balance: { lt: 0 }, ...orgFilter } }),
+    ]);
+
+    const thisMonthRevenue = monthPayments._sum.amount ?? 0;
+    const lastMonthRevenue = prevMonthPayments._sum.amount ?? 0;
+    const newStudentsThisMonth = studentCount - prevStudentCount;
 
     return ok({
       studentCount,
       groupCount,
       leadCount,
       teacherCount,
-      monthlyRevenue: monthPayments._sum.amount ?? 0,
+      monthlyRevenue: thisMonthRevenue,
       debtorCount,
+      // change indicators
+      newStudentsThisMonth,
+      revenueChange: lastMonthRevenue > 0
+        ? Math.round(((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100)
+        : null,
+      newLeadsThisMonth: leadCount - prevLeadCount,
     });
   }
 );

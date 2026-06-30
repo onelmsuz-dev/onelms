@@ -32,7 +32,7 @@ async function deleter(url: string) {
 export function useStudents(params?: { groupId?: string; search?: string }) {
   const query = new URLSearchParams();
   if (params?.groupId) query.set("groupId", params.groupId);
-  if (params?.search)  query.set("search",  params.search);
+  if (params?.search)  query.set("q",       params.search);
   const qs = query.toString();
   return useSWR(`/api/students${qs ? `?${qs}` : ""}`, fetcher);
 }

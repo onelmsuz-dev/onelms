@@ -53,32 +53,38 @@ export default function DashboardPage() {
   const STAT_CARDS = [
     {
       title: "Jami o'quvchi", value: statsLoading ? null : stats?.studentCount ?? 0,
-      change: "+12 bu oy", up: true,
+      change: statsLoading ? null : stats?.newStudentsThisMonth > 0 ? `+${stats.newStudentsThisMonth} bu oy` : "Bu oy o'zgarish yo'q",
+      up: (stats?.newStudentsThisMonth ?? 0) >= 0,
       icon: GraduationCap, bg: "bg-indigo-50 dark:bg-indigo-950/40", text: "text-indigo-600 dark:text-indigo-400",
     },
     {
       title: "Faol guruhlar", value: statsLoading ? null : stats?.groupCount ?? 0,
-      change: "+2 bu oy", up: true,
+      change: null, up: true,
       icon: Users, bg: "bg-emerald-50 dark:bg-emerald-950/40", text: "text-emerald-600 dark:text-emerald-400",
     },
     {
       title: "Oylik daromad", value: statsLoading ? null : formatCurrency(stats?.monthlyRevenue ?? 0),
-      change: "+18%", up: true,
+      change: statsLoading ? null : stats?.revenueChange != null
+        ? `${stats.revenueChange >= 0 ? "+" : ""}${stats.revenueChange}% o'tgan oyga`
+        : null,
+      up: (stats?.revenueChange ?? 0) >= 0,
       icon: Wallet, bg: "bg-amber-50 dark:bg-amber-950/40", text: "text-amber-600 dark:text-amber-400",
     },
     {
       title: "Yangi lidlar", value: statsLoading ? null : stats?.leadCount ?? 0,
-      change: "+8 bu hafta", up: true,
+      change: statsLoading ? null : stats?.newLeadsThisMonth > 0 ? `+${stats.newLeadsThisMonth} bu oy` : null,
+      up: (stats?.newLeadsThisMonth ?? 0) >= 0,
       icon: Target, bg: "bg-pink-50 dark:bg-pink-950/40", text: "text-pink-600 dark:text-pink-400",
     },
     {
       title: "O'qituvchilar", value: statsLoading ? null : stats?.teacherCount ?? 0,
-      change: "o'zgarmadi", up: true,
+      change: null, up: true,
       icon: TrendingUp, bg: "bg-violet-50 dark:bg-violet-950/40", text: "text-violet-600 dark:text-violet-400",
     },
     {
       title: "Qarzdorlar", value: statsLoading ? null : stats?.debtorCount ?? 0,
-      change: "Nazorat qiling", up: false,
+      change: (stats?.debtorCount ?? 0) > 0 ? "Nazorat qiling" : null,
+      up: false,
       icon: UserCheck, bg: "bg-teal-50 dark:bg-teal-950/40", text: "text-teal-600 dark:text-teal-400",
     },
   ];
@@ -104,9 +110,11 @@ export default function DashboardPage() {
                   : <p className="text-[22px] font-black text-neutral-900 dark:text-neutral-100 leading-none">{s.value}</p>
                 }
                 <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1">{s.title}</p>
-                <p className={cn("text-[10px] font-semibold mt-0.5", s.up ? "text-emerald-500" : "text-red-500")}>
-                  {s.change}
-                </p>
+                {s.change && (
+                  <p className={cn("text-[10px] font-semibold mt-0.5", s.up ? "text-emerald-500" : "text-red-500")}>
+                    {s.change}
+                  </p>
+                )}
               </div>
             );
           })}

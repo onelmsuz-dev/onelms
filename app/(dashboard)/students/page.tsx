@@ -16,7 +16,7 @@ import {
   CheckCircle, DollarSign, Trash2, ChevronRight, UserCheck, Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useStudents, useCreateStudent, useDeleteStudent } from "@/lib/hooks/useStudents";
+import { useStudents } from "@/lib/hooks/useStudents";
 import { useGroups } from "@/lib/hooks/useGroups";
 import { mutate } from "swr";
 
@@ -38,18 +38,32 @@ const PAY_CFG: Record<string, { label: string; cls: string }> = {
   QISMAN:  { label: "Qisman",   cls: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" },
 };
 
-const EMPTY = { name: "", phone: "", parentPhone: "", groupId: "" };
+const EMPTY_CREATE = { name: "", phone: "", parentPhone: "", groupId: "" };
+const EMPTY_EDIT   = { name: "", phone: "", parentPhone: "" };
+
+function revalidate() {
+  mutate((key: string) => typeof key === "string" && key.startsWith("/api/students"), undefined, { revalidate: true });
+}
 
 export default function StudentsPage() {
   const [search,       setSearch]       = useState("");
   const [filterEnroll, setFilterEnroll] = useState("barchasi");
   const [filterGroup,  setFilterGroup]  = useState("barchasi");
-  const [showModal,    setShowModal]    = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<any>(null);
-  const [form,         setForm]         = useState(EMPTY);
+
+  // Create
+  const [showCreate,   setShowCreate]   = useState(false);
+  const [createForm,   setCreateForm]   = useState(EMPTY_CREATE);
+  const [createErr,    setCreateErr]    = useState("");
+  const [createFErr,   setCreateFErr]   = useState({ name: "", phone: "" });
+
+  // Edit
+  const [editTarget,   setEditTarget]   = useState<any>(null);
+  const [editForm,     setEditForm]     = useState(EMPTY_EDIT);
+  const [editErr,      setEditErr]      = useState("");
+  const [editFErr,     setEditFErr]     = useState({ name: "", phone: "" });
+
   const [saving,       setSaving]       = useState(false);
-  const [error,        setError]        = useState("");
-  const [fieldErr,     setFieldErr]     = useState({ name: "", phone: "" });
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [activating,   setActivating]   = useState<string | null>(null);
 
   const { data: studentsRaw, isLoading } = useStudents({ search });
@@ -61,47 +75,77 @@ export default function StudentsPage() {
   const filtered = useMemo(() => students.filter(s => {
     const sg = s.groups?.[0];
     const matchEnroll = filterEnroll === "barchasi"
-      || (filterEnroll === "SINOV"  && !s.isActive)
-      || (filterEnroll === "FAOL"   && s.isActive)
+      || (filterEnroll === "SINOV" && !s.isActive)
+      || (filterEnroll === "FAOL"  && s.isActive)
       || sg?.enrollmentStatus === filterEnroll;
     const matchGroup = filterGroup === "barchasi" || s.groups?.some((g: any) => g.groupId === filterGroup);
     return matchEnroll && matchGroup;
   }), [students, filterEnroll, filterGroup]);
 
   const stats = useMemo(() => ({
-    jami:    students.length,
-    sinov:   students.filter(s => !s.isActive).length,
-    faol:    students.filter(s => s.isActive).length,
-    qarz:    students.filter(s => s.balance < 0).reduce((sum, s) => sum + Math.abs(s.balance), 0),
+    jami:  students.length,
+    sinov: students.filter(s => !s.isActive).length,
+    faol:  students.filter(s =>  s.isActive).length,
+    qarz:  students.filter(s => s.balance < 0).reduce((sum, s) => sum + Math.abs(s.balance), 0),
   }), [students]);
 
+  // ─── Create ──────────────────────────────────────────────────────────────────
   function openCreate() {
-    setForm(EMPTY); setError(""); setFieldErr({ name: "", phone: "" });
-    setShowModal(true);
+    setCreateForm(EMPTY_CREATE); setCreateErr(""); setCreateFErr({ name: "", phone: "" });
+    setShowCreate(true);
   }
 
-  async function submit() {
+  async function submitCreate() {
     const errs = { name: "", phone: "" };
-    if (!form.name.trim()) errs.name = "Ism majburiy";
-    const digits = form.phone.replace(/\D/g, "");
-    if (digits.length !== 12) errs.phone = "To'liq 9 ta raqam kiriting";
-    if (errs.name || errs.phone) { setFieldErr(errs); return; }
-    if (!form.groupId) { setError("Guruhni tanlang"); return; }
+    if (!createForm.name.trim()) errs.name = "Ism majburiy";
+    if (createForm.phone.replace(/\D/g, "").length !== 12) errs.phone = "To'liq 9 ta raqam kiriting";
+    if (errs.name || errs.phone) { setCreateFErr(errs); return; }
+    if (!createForm.groupId) { setCreateErr("Guruhni tanlang"); return; }
 
-    setSaving(true); setError("");
+    setSaving(true); setCreateErr("");
     try {
       const res = await fetch("/api/students", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(createForm),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error ?? "Xatolik"); return; }
-      mutate((key: string) => typeof key === "string" && key.startsWith("/api/students"), undefined, { revalidate: true });
-      setShowModal(false);
-    } catch { setError("Serverga ulanib bo'lmadi"); }
+      if (!res.ok) { setCreateErr(data.error ?? "Xatolik"); return; }
+      revalidate();
+      setShowCreate(false);
+    } catch { setCreateErr("Serverga ulanib bo'lmadi"); }
     finally { setSaving(false); }
   }
 
+  // ─── Edit ────────────────────────────────────────────────────────────────────
+  function openEdit(s: any) {
+    setEditTarget(s);
+    setEditForm({ name: s.name, phone: s.phone, parentPhone: s.parentPhone ?? "" });
+    setEditErr(""); setEditFErr({ name: "", phone: "" });
+  }
+
+  async function submitEdit() {
+    const errs = { name: "", phone: "" };
+    if (!editForm.name.trim()) errs.name = "Ism majburiy";
+    if (editForm.phone.replace(/\D/g, "").length !== 12) errs.phone = "To'liq raqam kiriting";
+    if (errs.name || errs.phone) { setEditFErr(errs); return; }
+
+    setSaving(true); setEditErr("");
+    try {
+      const body: any = { name: editForm.name, phone: editForm.phone };
+      if (editForm.parentPhone) body.parentPhone = editForm.parentPhone;
+      const res = await fetch(`/api/students/${editTarget.id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) { setEditErr(data.error ?? "Xatolik"); return; }
+      revalidate();
+      setEditTarget(null);
+    } catch { setEditErr("Serverga ulanib bo'lmadi"); }
+    finally { setSaving(false); }
+  }
+
+  // ─── Activate ────────────────────────────────────────────────────────────────
   async function activate(student: any) {
     const sg = student.groups?.[0];
     if (!sg) return;
@@ -111,15 +155,16 @@ export default function StudentsPage() {
         method: "PATCH", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ enrollmentStatus: "FAOL" }),
       });
-      mutate((key: string) => typeof key === "string" && key.startsWith("/api/students"), undefined, { revalidate: true });
+      revalidate();
     } finally { setActivating(null); }
   }
 
+  // ─── Delete ──────────────────────────────────────────────────────────────────
   async function deleteStudent() {
     if (!deleteTarget) return;
     setSaving(true);
     await fetch(`/api/students/${deleteTarget.id}`, { method: "DELETE" });
-    mutate((key: string) => typeof key === "string" && key.startsWith("/api/students"), undefined, { revalidate: true });
+    revalidate();
     setDeleteTarget(null); setSaving(false);
   }
 
@@ -133,36 +178,36 @@ export default function StudentsPage() {
 
       {/* Create modal */}
       <Modal
-        open={showModal}
-        onClose={() => setShowModal(false)}
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
         title="Yangi o'quvchi"
         subtitle="O'quvchi qo'shilganda sinov darsi yaratiladi"
         footer={
           <>
-            <Button onClick={submit} disabled={saving}
+            <Button onClick={submitCreate} disabled={saving}
               className="flex-1 h-9 bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 text-white text-[13px]">
               {saving ? "Saqlanmoqda..." : "Qo'shish"}
             </Button>
-            <Button variant="outline" className="h-9 px-4 text-[13px]" onClick={() => setShowModal(false)}>Bekor</Button>
+            <Button variant="outline" className="h-9 px-4 text-[13px]" onClick={() => setShowCreate(false)}>Bekor</Button>
           </>
         }
       >
-        <FormField label="Ism familiya" required error={fieldErr.name}>
-          <Input placeholder="Alisher Navoiy" value={form.name}
-            onChange={e => { setForm(p => ({...p, name: e.target.value})); setFieldErr(p => ({...p, name: ""})); }}
+        <FormField label="Ism familiya" required error={createFErr.name}>
+          <Input placeholder="Alisher Navoiy" value={createForm.name}
+            onChange={e => { setCreateForm(p => ({...p, name: e.target.value})); setCreateFErr(p => ({...p, name: ""})); }}
             className="h-10" />
         </FormField>
-        <FormField label="Telefon raqam" required error={fieldErr.phone}>
-          <PhoneInput value={form.phone}
-            onChange={v => { setForm(p => ({...p, phone: v})); setFieldErr(p => ({...p, phone: ""})); }}
-            error={!!fieldErr.phone} />
+        <FormField label="Telefon raqam" required error={createFErr.phone}>
+          <PhoneInput value={createForm.phone}
+            onChange={v => { setCreateForm(p => ({...p, phone: v})); setCreateFErr(p => ({...p, phone: ""})); }}
+            error={!!createFErr.phone} />
         </FormField>
         <FormField label="Ota-ona telefoni" hint="Ixtiyoriy">
-          <PhoneInput value={form.parentPhone} onChange={v => setForm(p => ({...p, parentPhone: v}))} />
+          <PhoneInput value={createForm.parentPhone} onChange={v => setCreateForm(p => ({...p, parentPhone: v}))} />
         </FormField>
-        <FormField label="Guruh" required error={error.includes("Guruh") ? error : ""}>
-          <select value={form.groupId}
-            onChange={e => { setForm(p => ({...p, groupId: e.target.value})); setError(""); }}
+        <FormField label="Guruh" required error={createErr.includes("Guruh") ? createErr : ""}>
+          <select value={createForm.groupId}
+            onChange={e => { setCreateForm(p => ({...p, groupId: e.target.value})); setCreateErr(""); }}
             className="w-full h-10 px-3 text-[13px] rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 outline-none focus:border-neutral-900 dark:focus:border-neutral-400 transition-colors">
             <option value="">Guruhni tanlang...</option>
             {groups.map((g: any) => (
@@ -170,17 +215,53 @@ export default function StudentsPage() {
             ))}
           </select>
         </FormField>
-        {/* Info box */}
         <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/40 rounded-xl px-3 py-2.5">
           <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
           <p className="text-[12px] text-amber-700 dark:text-amber-400">
             O'quvchi <strong>nofaol</strong> holatda qo'shiladi. Sinov darsidan keyin "Faollashtirish" tugmasini bosing.
           </p>
         </div>
-        {error && !error.includes("Guruh") && (
+        {createErr && !createErr.includes("Guruh") && (
           <div className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/40 rounded-xl px-3 py-2.5">
             <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
-            <p className="text-[12px] font-medium text-red-600 dark:text-red-400">{error}</p>
+            <p className="text-[12px] font-medium text-red-600 dark:text-red-400">{createErr}</p>
+          </div>
+        )}
+      </Modal>
+
+      {/* Edit modal */}
+      <Modal
+        open={!!editTarget}
+        onClose={() => setEditTarget(null)}
+        title="O'quvchini tahrirlash"
+        subtitle={editTarget?.name}
+        footer={
+          <>
+            <Button onClick={submitEdit} disabled={saving}
+              className="flex-1 h-9 bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 text-white text-[13px]">
+              {saving ? "Saqlanmoqda..." : "Saqlash"}
+            </Button>
+            <Button variant="outline" className="h-9 px-4 text-[13px]" onClick={() => setEditTarget(null)}>Bekor</Button>
+          </>
+        }
+      >
+        <FormField label="Ism familiya" required error={editFErr.name}>
+          <Input value={editForm.name}
+            onChange={e => { setEditForm(p => ({...p, name: e.target.value})); setEditFErr(p => ({...p, name: ""})); }}
+            className="h-10" />
+        </FormField>
+        <FormField label="Telefon raqam" required error={editFErr.phone}>
+          <PhoneInput value={editForm.phone}
+            onChange={v => { setEditForm(p => ({...p, phone: v})); setEditFErr(p => ({...p, phone: ""})); }}
+            error={!!editFErr.phone} />
+        </FormField>
+        <FormField label="Ota-ona telefoni" hint="Ixtiyoriy">
+          <PhoneInput value={editForm.parentPhone} onChange={v => setEditForm(p => ({...p, parentPhone: v}))} />
+        </FormField>
+        {editErr && (
+          <div className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/40 rounded-xl px-3 py-2.5">
+            <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+            <p className="text-[12px] font-medium text-red-600 dark:text-red-400">{editErr}</p>
           </div>
         )}
       </Modal>
@@ -196,10 +277,10 @@ export default function StudentsPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { label: "Jami",       value: stats.jami,  icon: GraduationCap, bg: "bg-blue-50 dark:bg-blue-950/40",   text: "text-blue-600 dark:text-blue-400" },
-            { label: "Faol",       value: stats.faol,  icon: CheckCircle,   bg: "bg-green-50 dark:bg-green-950/40", text: "text-green-600 dark:text-green-400" },
-            { label: "Sinov",      value: stats.sinov, icon: Clock,         bg: "bg-amber-50 dark:bg-amber-950/40", text: "text-amber-600 dark:text-amber-400" },
-            { label: "Jami qarz",  value: fmt(stats.qarz), icon: DollarSign, bg: "bg-red-50 dark:bg-red-950/40",   text: "text-red-600 dark:text-red-400" },
+            { label: "Jami",      value: stats.jami,       icon: GraduationCap, bg: "bg-blue-50 dark:bg-blue-950/40",   text: "text-blue-600 dark:text-blue-400" },
+            { label: "Faol",      value: stats.faol,       icon: CheckCircle,   bg: "bg-green-50 dark:bg-green-950/40", text: "text-green-600 dark:text-green-400" },
+            { label: "Sinov",     value: stats.sinov,      icon: Clock,         bg: "bg-amber-50 dark:bg-amber-950/40", text: "text-amber-600 dark:text-amber-400" },
+            { label: "Jami qarz", value: fmt(stats.qarz),  icon: DollarSign,    bg: "bg-red-50 dark:bg-red-950/40",     text: "text-red-600 dark:text-red-400" },
           ].map(s => {
             const Icon = s.icon;
             return (
@@ -310,7 +391,6 @@ export default function StudentsPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center justify-end gap-1">
-                            {/* Faollashtirish */}
                             {!s.isActive && sg && (
                               <button
                                 onClick={() => activate(s)}
@@ -321,6 +401,10 @@ export default function StudentsPage() {
                                 {activating === s.id ? "..." : "Faollashtirish"}
                               </button>
                             )}
+                            <button onClick={() => openEdit(s)}
+                              className="w-7 h-7 flex items-center justify-center rounded-lg text-neutral-400 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/30 transition-colors">
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
                             <a href={`tel:${s.phone}`}
                               className="w-7 h-7 flex items-center justify-center rounded-lg text-neutral-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors">
                               <Phone className="w-3.5 h-3.5" />

@@ -56,7 +56,10 @@ export default function AttendancePage() {
   const { data: studentsRaw, isLoading: studentsLoading } = useStudents(
     selectedGroup ? { groupId: selectedGroup } : undefined
   );
-  const students: any[] = Array.isArray(studentsRaw) ? studentsRaw : [];
+  const allStudents:  any[] = Array.isArray(studentsRaw) ? studentsRaw : [];
+  // Active students go into the main attendance table; sinov students shown separately
+  const students:     any[] = allStudents.filter(s => s.isActive);
+  const sinovStudents:any[] = allStudents.filter(s => !s.isActive);
 
   // Load existing attendance for this date+group
   useEffect(() => {
@@ -66,7 +69,12 @@ export default function AttendancePage() {
       .then((records: any[]) => {
         if (!Array.isArray(records)) return;
         const map: Record<string, Status> = {};
-        records.forEach(r => { map[r.studentId] = r.status as Status; });
+        records.forEach(r => {
+          // Only load valid statuses into localStatus
+          if (ALL_STATUSES.includes(r.status as Status)) {
+            map[r.studentId] = r.status as Status;
+          }
+        });
         setLocalStatus(map);
       })
       .catch(() => {});
@@ -76,7 +84,7 @@ export default function AttendancePage() {
     const counts = { KELDI: 0, KELMADI: 0, KECH_KELDI: 0, SABABLI: 0 };
     students.forEach(s => {
       const status = localStatus[s.id] ?? "KELDI";
-      counts[status]++;
+      if (status in counts) counts[status as Status]++;
     });
     return { ...counts, total: students.length };
   }, [students, localStatus]);
@@ -88,20 +96,22 @@ export default function AttendancePage() {
   function cycleStatus(studentId: string) {
     setLocalStatus(prev => {
       const cur = prev[studentId] ?? "KELDI";
-      return { ...prev, [studentId]: ALL_STATUSES[(ALL_STATUSES.indexOf(cur) + 1) % ALL_STATUSES.length] };
+      const idx = ALL_STATUSES.indexOf(cur);
+      return { ...prev, [studentId]: ALL_STATUSES[(idx < 0 ? 0 : idx + 1) % ALL_STATUSES.length] };
     });
   }
 
   function markAll(status: Status) {
     const map: Record<string, Status> = {};
     students.forEach(s => { map[s.id] = status; });
-    setLocalStatus(map);
+    setLocalStatus(prev => ({ ...prev, ...map }));
   }
 
   async function saveAttendance() {
     if (!selectedGroup || students.length === 0) return;
     setSaving(true);
     try {
+      // Only save active students — sinov students keep their SINOV_DARSI status
       const records = students.map(s => {
         const sg = s.groups?.find((g: any) => g.groupId === selectedGroup);
         return {
@@ -297,10 +307,42 @@ export default function AttendancePage() {
           </Table>
           {!studentsLoading && students.length === 0 && (
             <div className="py-12 text-center text-sm text-neutral-400">
-              {selectedGroup ? "Bu guruhda o'quvchi yo'q" : "Guruhni tanlang"}
+              {selectedGroup ? "Bu guruhda faol o'quvchi yo'q" : "Guruhni tanlang"}
             </div>
           )}
         </div>
+
+        {/* Sinov o'quvchilari — shown separately, read-only */}
+        {!studentsLoading && sinovStudents.length > 0 && (
+          <div className="bg-white dark:bg-neutral-900 border border-amber-200 dark:border-amber-900/40 rounded-2xl overflow-hidden">
+            <div className="px-5 py-3 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-900/40 flex items-center justify-between">
+              <p className="text-[13px] font-bold text-amber-700 dark:text-amber-400">
+                Sinov darsidagi o'quvchilar
+              </p>
+              <span className="text-[11px] bg-amber-200 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full font-semibold">
+                {sinovStudents.length} ta
+              </span>
+            </div>
+            <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
+              {sinovStudents.map((s: any) => (
+                <div key={s.id} className="flex items-center justify-between px-5 py-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-orange-400 rounded-xl flex items-center justify-center text-white text-[12px] font-bold shrink-0">
+                      {s.name[0]}
+                    </div>
+                    <div>
+                      <p className="text-[13px] font-medium text-neutral-900 dark:text-neutral-100">{s.name}</p>
+                      <p className="text-[11px] text-neutral-400">{s.phone}</p>
+                    </div>
+                  </div>
+                  <span className="text-[11px] px-2.5 py-1 rounded-full font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                    Sinov darsi
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
