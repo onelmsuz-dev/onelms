@@ -17,6 +17,10 @@ export function useCourses() {
   return useSWR("/api/courses", fetcher);
 }
 
+export function useCourse(id: string) {
+  return useSWR(id ? `/api/courses/${id}` : null, fetcher);
+}
+
 export function useCreateCourse() {
   return useSWRMutation("/api/courses", poster);
 }

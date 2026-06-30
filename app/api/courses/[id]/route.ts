@@ -4,6 +4,24 @@ import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
+export const GET = guard(["SUPER_ADMIN", "TEACHER", "RECEPTIONIST", "ACCOUNTANT"], async (_, ctx, { organizationId }) => {
+  const { id } = await ctx.params;
+  const course = await db.course.findFirst({
+    where: { id, organizationId: organizationId ?? undefined },
+    include: {
+      groups: {
+        include: {
+          teacher: { include: { user: true } },
+          students: { include: { student: true } },
+        },
+        orderBy: { startDate: "desc" },
+      },
+    },
+  });
+  if (!course) return err("Kurs topilmadi", 404);
+  return ok(course);
+});
+
 const updateSchema = z.object({
   name:        z.string().min(2).optional(),
   description: z.string().optional(),

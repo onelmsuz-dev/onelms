@@ -5,7 +5,8 @@ import { TopHeader } from "@/components/layout/top-header";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Search, Users, Clock, MapPin, CalendarDays, Eye, BookOpen, TrendingUp, X, Edit, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { Search, Users, Clock, MapPin, CalendarDays, Eye, BookOpen, TrendingUp, X, Edit, Trash2, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useGroups } from "@/lib/hooks/useGroups";
 import { useCourses } from "@/lib/hooks/useCourses";
@@ -310,6 +311,9 @@ export default function GroupsPage() {
                         <button onClick={() => deleteGroup(g.id, g.name)} className="w-7 h-7 flex items-center justify-center rounded-lg text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
+                        <Link href={`/groups/${g.id}`} className="w-7 h-7 flex items-center justify-center rounded-lg text-neutral-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </Link>
                       </div>
                     </div>
                     <div className="space-y-2 mb-3">

@@ -3,6 +3,27 @@ import { guard, ok, err } from "@/lib/api-guard";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 
+export const GET = guard(["SUPER_ADMIN", "TEACHER", "RECEPTIONIST", "ACCOUNTANT"], async (_, ctx, { organizationId }) => {
+  const { id } = await ctx.params;
+  const teacher = await db.teacher.findFirst({
+    where: { id, organizationId: organizationId ?? undefined },
+    include: {
+      user: { select: { id: true, name: true, phone: true, email: true, isActive: true } },
+      groups: {
+        include: {
+          course: true,
+          students: { include: { student: true } },
+        },
+        orderBy: { startDate: "desc" },
+      },
+      salaries: { orderBy: { month: "desc" }, take: 12 },
+    },
+  });
+  if (!teacher) return err("O'qituvchi topilmadi", 404);
+  return ok(teacher);
+});
+
+
 export const dynamic = "force-dynamic";
 
 const updateSchema = z.object({

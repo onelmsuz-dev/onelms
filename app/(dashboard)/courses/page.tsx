@@ -5,7 +5,8 @@ import { TopHeader } from "@/components/layout/top-header";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Search, BookOpen, Users, Wallet, Clock, Edit, Trash2, X } from "lucide-react";
+import Link from "next/link";
+import { Search, BookOpen, Users, Wallet, Clock, Edit, Trash2, X, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCourses } from "@/lib/hooks/useCourses";
 import { mutate } from "swr";
@@ -226,6 +227,10 @@ export default function CoursesPage() {
                           className="w-7 h-7 flex items-center justify-center rounded-lg text-neutral-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
+                        <Link href={`/courses/${course.id}`}
+                          className="w-7 h-7 flex items-center justify-center rounded-lg text-neutral-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </Link>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2">

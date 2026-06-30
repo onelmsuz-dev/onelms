@@ -27,6 +27,10 @@ export function useTeachers() {
   return useSWR("/api/teachers", fetcher);
 }
 
+export function useTeacher(id: string) {
+  return useSWR(id ? `/api/teachers/${id}` : null, fetcher);
+}
+
 export function useCreateTeacher() {
   return useSWRMutation("/api/teachers", poster);
 }

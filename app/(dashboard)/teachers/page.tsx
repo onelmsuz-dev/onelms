@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Search, Phone, Mail, Users, BookOpen, Wallet, LayoutGrid, List, Plus, Pencil, Trash2, AlertCircle } from "lucide-react";
+import Link from "next/link";
+import { Search, Phone, Mail, Users, BookOpen, Wallet, LayoutGrid, List, Plus, Pencil, Trash2, AlertCircle, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTeachers } from "@/lib/hooks/useTeachers";
 import { mutate } from "swr";
@@ -349,6 +350,7 @@ export default function TeachersPage() {
                         {t.email && <a href={`mailto:${t.email}`} className="w-7 h-7 flex items-center justify-center rounded-lg text-neutral-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"><Mail className="w-3.5 h-3.5" /></a>}
                         <button onClick={() => openEdit(t)} className="w-7 h-7 flex items-center justify-center rounded-lg text-neutral-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
                         <button onClick={() => { setError(""); setDeleteTarget(t); }} className="w-7 h-7 flex items-center justify-center rounded-lg text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                        <Link href={`/teachers/${t.id}`} className="w-7 h-7 flex items-center justify-center rounded-lg text-neutral-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"><ChevronRight className="w-3.5 h-3.5" /></Link>
                       </div>
                     </div>
                   </div>
@@ -402,6 +404,7 @@ export default function TeachersPage() {
                             <a href={`tel:${t.phone}`} className="w-7 h-7 flex items-center justify-center rounded-lg text-neutral-400 hover:text-green-600 hover:bg-green-50 transition-colors"><Phone className="w-3.5 h-3.5" /></a>
                             <button onClick={() => openEdit(t)} className="w-7 h-7 flex items-center justify-center rounded-lg text-neutral-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
                             <button onClick={() => { setError(""); setDeleteTarget(t); }} className="w-7 h-7 flex items-center justify-center rounded-lg text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                            <Link href={`/teachers/${t.id}`} className="w-7 h-7 flex items-center justify-center rounded-lg text-neutral-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"><ChevronRight className="w-3.5 h-3.5" /></Link>
                           </div>
                         </TableCell>
                       </TableRow>

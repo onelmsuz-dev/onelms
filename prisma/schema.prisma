@@ -56,6 +56,13 @@ enum AttendanceStatus {
   KELMADI
   KECH_KELDI
   SABABLI
+  SINOV_DARSI
+}
+
+enum EnrollmentStatus {
+  SINOV
+  FAOL
+  CHIQIB_KETGAN
 }
 
 enum LeadStatus {
@@ -209,6 +216,7 @@ model Student {
   phone          String
   parentPhone    String?
   balance        Float        @default(0)
+  isActive       Boolean      @default(true)
   createdAt      DateTime     @default(now())
 
   groups     StudentGroup[]
@@ -217,13 +225,14 @@ model Student {
 }
 
 model StudentGroup {
-  id            String        @id @default(cuid())
-  studentId     String
-  student       Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  groupId       String
-  group         Group         @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  paymentStatus PaymentStatus @default(TOLANDI)
-  joinedAt      DateTime      @default(now())
+  id               String           @id @default(cuid())
+  studentId        String
+  student          Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  groupId          String
+  group            Group            @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  paymentStatus    PaymentStatus    @default(TOLANDI)
+  enrollmentStatus EnrollmentStatus @default(SINOV)
+  joinedAt         DateTime         @default(now())
 
   attendance Attendance[]
 

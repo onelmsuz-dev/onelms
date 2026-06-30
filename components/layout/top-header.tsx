@@ -1,11 +1,12 @@
 "use client";
 
+import { ReactNode } from "react";
 import { Bell, Search, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface TopHeaderProps {
   title: string;
-  subtitle?: string;
+  subtitle?: ReactNode;
   action?: { label: string; onClick?: () => void };
 }
 

@@ -10,6 +10,7 @@ const updateSchema = z.object({
   phone:       z.string().min(9).optional(),
   parentPhone: z.string().optional(),
   balance:     z.number().optional(),
+  isActive:    z.boolean().optional(),
 });
 
 export const GET = guard(["SUPER_ADMIN", "TEACHER", "RECEPTIONIST"], async (_, ctx, { role, teacherId, organizationId }) => {
