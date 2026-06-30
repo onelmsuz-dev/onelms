@@ -41,6 +41,7 @@ export default function AttendancePage() {
   const [currentDate,   setCurrentDate]   = useState(new Date(today));
   const [selectedGroup, setSelectedGroup] = useState<string>("");
   const [localStatus,   setLocalStatus]   = useState<Record<string, Status>>({});
+  const [localNote,     setLocalNote]     = useState<Record<string, string>>({});
   const [saving,        setSaving]        = useState(false);
 
   const { data: groupsRaw, isLoading: groupsLoading } = useGroups({ status: "ACTIVE" });
@@ -68,6 +69,7 @@ export default function AttendancePage() {
       .then(r => r.json())
       .then((records: any[]) => {
         if (!Array.isArray(records)) return;
+        setLocalNote({});
         const map: Record<string, Status> = {};
         records.forEach(r => {
           // Only load valid statuses into localStatus
@@ -118,6 +120,7 @@ export default function AttendancePage() {
           studentGroupId: sg?.id ?? "",
           studentId:      s.id,
           status:         localStatus[s.id] ?? "KELDI",
+          note:           localNote[s.id] || undefined,
         };
       }).filter(r => r.studentGroupId);
 
@@ -157,9 +160,12 @@ export default function AttendancePage() {
               </p>
               <p className="text-[11px] text-neutral-400 text-center">{UZ_DAYS[currentDate.getDay()]}</p>
             </div>
-            <button onClick={() => setCurrentDate(d => addDays(d, 1))}
+            <button
+              onClick={() => setCurrentDate(d => addDays(d, 1))}
+              disabled={currentDate.getTime() >= today.getTime()}
               className="w-8 h-8 flex items-center justify-center rounded-xl border border-neutral-200 dark:border-neutral-700
-                hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 transition-colors">
+                hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 transition-colors
+                disabled:opacity-30 disabled:cursor-not-allowed">
               <ChevronRight className="w-4 h-4" />
             </button>
             {!isToday && (
@@ -292,11 +298,16 @@ export default function AttendancePage() {
                             {cfg.label}
                           </button>
                         </TableCell>
-                        <TableCell className="text-center">
+                        <TableCell>
                           {status === "SABABLI" && (
-                            <span className="text-[11px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-lg">
-                              Izoh kiriting
-                            </span>
+                            <input
+                              value={localNote[s.id] ?? ""}
+                              onChange={e => setLocalNote(prev => ({ ...prev, [s.id]: e.target.value }))}
+                              placeholder="Sabab..."
+                              className="w-full h-8 px-2.5 text-[12px] rounded-lg border border-blue-200 dark:border-blue-800
+                                bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 placeholder:text-blue-400
+                                outline-none focus:border-blue-400 transition-colors"
+                            />
                           )}
                         </TableCell>
                       </TableRow>

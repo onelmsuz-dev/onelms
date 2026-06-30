@@ -9,6 +9,10 @@ const updateSchema = z.object({
   status:       z.enum(["YANGI", "ALOQA_QILINGAN", "SINOV_DARSI", "TO_LANDI", "BEKOR"]).optional(),
   note:         z.string().optional(),
   assignedToId: z.string().optional(),
+  name:         z.string().min(2).optional(),
+  phone:        z.string().min(9).optional(),
+  source:       z.string().optional(),
+  course:       z.string().optional(),
 });
 
 export const PATCH = guard(["SUPER_ADMIN", "RECEPTIONIST"], async (req, ctx, { organizationId }) => {

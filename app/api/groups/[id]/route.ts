@@ -27,7 +27,11 @@ export const GET = guard(
         teacher:  { include: { user: true } },
         room:     true,
         branch:   true,
-        students: { include: { student: true }, orderBy: { joinedAt: "asc" } },
+        students: {
+          where:   { enrollmentStatus: { not: "CHIQIB_KETGAN" } },
+          include: { student: true },
+          orderBy: { joinedAt: "asc" },
+        },
       },
     });
 

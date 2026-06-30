@@ -73,20 +73,18 @@ export default function StudentsPage() {
   const groups:   any[] = Array.isArray(groupsRaw)   ? groupsRaw   : [];
 
   const filtered = useMemo(() => students.filter(s => {
-    const sg = s.groups?.[0];
+    const sg = s.groups?.[0]; // sorted by joinedAt desc — latest group
     const matchEnroll = filterEnroll === "barchasi"
-      || (filterEnroll === "SINOV" && !s.isActive)
-      || (filterEnroll === "FAOL"  && s.isActive)
       || sg?.enrollmentStatus === filterEnroll;
     const matchGroup = filterGroup === "barchasi" || s.groups?.some((g: any) => g.groupId === filterGroup);
     return matchEnroll && matchGroup;
   }), [students, filterEnroll, filterGroup]);
 
   const stats = useMemo(() => ({
-    jami:  students.length,
-    sinov: students.filter(s => !s.isActive).length,
-    faol:  students.filter(s =>  s.isActive).length,
-    qarz:  students.filter(s => s.balance < 0).reduce((sum, s) => sum + Math.abs(s.balance), 0),
+    jami:  students.filter(s => s.groups?.[0]?.enrollmentStatus !== "CHIQIB_KETGAN").length,
+    sinov: students.filter(s => s.groups?.[0]?.enrollmentStatus === "SINOV").length,
+    faol:  students.filter(s => s.groups?.[0]?.enrollmentStatus === "FAOL").length,
+    qarz:  students.filter(s => s.balance < 0 && s.groups?.[0]?.enrollmentStatus !== "CHIQIB_KETGAN").reduce((sum, s) => sum + Math.abs(s.balance), 0),
   }), [students]);
 
   // ─── Create ──────────────────────────────────────────────────────────────────

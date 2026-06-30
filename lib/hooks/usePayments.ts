@@ -13,10 +13,11 @@ async function poster(url: string, { arg }: { arg: unknown }) {
   return r.json();
 }
 
-export function usePayments(params?: { studentId?: string; groupId?: string }) {
+export function usePayments(params?: { studentId?: string; groupId?: string; month?: string }) {
   const query = new URLSearchParams();
   if (params?.studentId) query.set("studentId", params.studentId);
   if (params?.groupId)   query.set("groupId",   params.groupId);
+  if (params?.month)     query.set("month",      params.month);
   const qs = query.toString();
   return useSWR(`/api/payments${qs ? `?${qs}` : ""}`, fetcher);
 }

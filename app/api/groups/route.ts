@@ -42,7 +42,7 @@ export const GET = guard(
         teacher:  { include: { user: true } },
         room:     true,
         branch:   true,
-        _count:   { select: { students: true } },
+        _count:   { select: { students: { where: { enrollmentStatus: { not: "CHIQIB_KETGAN" } } } } },
       },
       orderBy: { name: "asc" },
     });

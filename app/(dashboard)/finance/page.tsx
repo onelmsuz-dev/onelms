@@ -40,6 +40,10 @@ const fetcher = (url: string) => fetch(url).then(r => r.json());
 
 export default function FinancePage() {
   const [activeTab,    setActiveTab]    = useState<Tab>("kirim");
+  const now2 = new Date();
+  const defaultPayMonth = `${now2.getFullYear()}-${String(now2.getMonth() + 1).padStart(2, "0")}`;
+  const [payMonth, setPayMonth] = useState(defaultPayMonth);
+  const [payFormErr, setPayFormErr] = useState("");
   const [showPayModal,  setShowPayModal]  = useState(false);
   const [payForm,       setPayForm]       = useState({ studentId: "", amount: "", method: "NAQD", note: "" });
   const [saving,        setSaving]        = useState(false);
@@ -58,7 +62,7 @@ export default function FinancePage() {
   const [payingId,      setPayingId]      = useState<string | null>(null);
   const [salaryErr,     setSalaryErr]     = useState("");
 
-  const { data: paymentsRaw, isLoading: paymentsLoading } = usePayments();
+  const { data: paymentsRaw, isLoading: paymentsLoading } = usePayments({ month: payMonth });
   const { data: studentsRaw }                             = useStudents();
   const { data: teachersRaw }                             = useTeachers();
   const { data: expensesRaw, isLoading: expensesLoading } = useSWR("/api/expenses", fetcher);
@@ -84,7 +88,9 @@ export default function FinancePage() {
   ];
 
   async function submitPayment() {
-    if (!payForm.studentId || !payForm.amount) return;
+    if (!payForm.studentId) { setPayFormErr("O'quvchini tanlang"); return; }
+    if (!payForm.amount || Number(payForm.amount) <= 0) { setPayFormErr("Summani kiriting"); return; }
+    setPayFormErr("");
     setSaving(true);
     try {
       const groupId = selectedStudent?.groups?.[0]?.groupId;
@@ -100,7 +106,9 @@ export default function FinancePage() {
         }),
       });
       mutate("/api/payments");
+      mutate(`/api/payments?month=${payMonth}`);
       mutate("/api/students");
+      setPayFormErr("");
       setShowPayModal(false);
       setPayForm({ studentId: "", amount: "", method: "NAQD", note: "" });
     } finally {
@@ -249,10 +257,18 @@ export default function FinancePage() {
               </div>
             </div>
 
+            {payFormErr && (
+              <div className="px-5 pb-2">
+                <div className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 border border-red-100 rounded-xl px-3 py-2.5">
+                  <X className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                  <p className="text-[12px] font-medium text-red-600 dark:text-red-400">{payFormErr}</p>
+                </div>
+              </div>
+            )}
             <div className="px-5 pb-5 flex gap-2">
               <Button
                 className="flex-1 bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 h-10"
-                disabled={!payForm.studentId || !payForm.amount || saving}
+                disabled={saving}
                 onClick={submitPayment}>
                 {saving ? "Saqlanmoqda..." : "To'lovni qabul qilish"}
               </Button>
@@ -366,6 +382,23 @@ export default function FinancePage() {
         </div>
 
         {/* To'lovlar */}
+        {activeTab === "kirim" && (
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-[13px] font-semibold text-neutral-700 dark:text-neutral-300">Oy:</span>
+            <input
+              type="month"
+              value={payMonth}
+              onChange={e => setPayMonth(e.target.value)}
+              className="h-9 px-3 text-[13px] rounded-xl border border-neutral-200 dark:border-neutral-700
+                bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 outline-none
+                focus:border-neutral-400 transition-colors"
+            />
+            <span className="text-[12px] text-neutral-400">{payments.length} ta to'lov</span>
+            <span className="ml-auto text-[13px] font-bold text-green-600 dark:text-green-400">
+              Jami: {formatCurrency(totalPayments)}
+            </span>
+          </div>
+        )}
         {activeTab === "kirim" && (
           <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 dark:border-neutral-800">

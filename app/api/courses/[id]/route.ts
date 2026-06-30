@@ -12,7 +12,10 @@ export const GET = guard(["SUPER_ADMIN", "TEACHER", "RECEPTIONIST", "ACCOUNTANT"
       groups: {
         include: {
           teacher: { include: { user: true } },
-          students: { include: { student: true } },
+          students: {
+            where:   { enrollmentStatus: { not: "CHIQIB_KETGAN" } },
+            include: { student: true },
+          },
         },
         orderBy: { startDate: "desc" },
       },

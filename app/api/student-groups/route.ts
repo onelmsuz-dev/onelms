@@ -29,7 +29,25 @@ export const POST = guard(["SUPER_ADMIN", "RECEPTIONIST"], async (req, _, { orga
   const existing = await db.studentGroup.findUnique({
     where: { studentId_groupId: { studentId, groupId } },
   });
-  if (existing) return err("O'quvchi bu guruhda allaqachon ro'yxatda", 400);
+
+  if (existing) {
+    if (existing.enrollmentStatus !== "CHIQIB_KETGAN") {
+      return err("O'quvchi bu guruhda allaqachon ro'yxatda", 400);
+    }
+    // Re-activate: was CHIQIB_KETGAN, now re-joining as FAOL
+    const sg = await db.$transaction(async (tx) => {
+      const updated = await tx.studentGroup.update({
+        where: { id: existing.id },
+        data:  { enrollmentStatus: "FAOL", joinedAt: new Date() },
+      });
+      await tx.student.update({
+        where: { id: studentId },
+        data:  { isActive: true },
+      });
+      return updated;
+    });
+    return ok(sg);
+  }
 
   const sg = await db.$transaction(async (tx) => {
     const record = await tx.studentGroup.create({

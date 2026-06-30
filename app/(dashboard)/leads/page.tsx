@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Modal, ConfirmDeleteModal } from "@/components/ui/modal";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { FormField } from "@/components/ui/form-field";
-import { Phone, Search, Plus, ChevronRight, Trash2, AlertCircle } from "lucide-react";
+import { Phone, Search, Plus, ChevronRight, Trash2, AlertCircle, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLeads } from "@/lib/hooks/useLeads";
 import { mutate } from "swr";
@@ -44,7 +44,7 @@ function Skeleton({ className }: { className?: string }) {
   return <div className={cn("animate-pulse bg-neutral-200 dark:bg-neutral-700 rounded-xl", className)} />;
 }
 
-function LeadCard({ lead, onMove, onDelete }: { lead: any; onMove: (id: string, status: LeadStatus) => void; onDelete: (lead: any) => void }) {
+function LeadCard({ lead, onMove, onDelete, onEdit }: { lead: any; onMove: (id: string, status: LeadStatus) => void; onDelete: (lead: any) => void; onEdit: (lead: any) => void }) {
   const next = NEXT_STATUS[lead.status as LeadStatus];
   return (
     <div className="bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-700 p-3 shadow-sm hover:shadow-md transition-shadow">
@@ -59,6 +59,10 @@ function LeadCard({ lead, onMove, onDelete }: { lead: any; onMove: (id: string, 
         <button onClick={() => onDelete(lead)}
           className="w-5 h-5 flex items-center justify-center rounded-md text-neutral-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shrink-0">
           <Trash2 className="w-3 h-3" />
+        </button>
+        <button onClick={() => onEdit(lead)}
+          className="w-5 h-5 flex items-center justify-center rounded-md text-neutral-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors shrink-0">
+          <Pencil className="w-3 h-3" />
         </button>
       </div>
 
@@ -114,6 +118,11 @@ export default function LeadsPage() {
   const [error,        setError]        = useState("");
   const [initStatus,   setInitStatus]   = useState<LeadStatus>("YANGI");
 
+  const [editTarget,   setEditTarget]   = useState<any>(null);
+  const [editForm,     setEditForm]     = useState(EMPTY);
+  const [editSaving,   setEditSaving]   = useState(false);
+  const [editError,    setEditError]    = useState("");
+
   const { data: raw, isLoading } = useLeads();
   const leads: any[] = Array.isArray(raw) ? raw : [];
 
@@ -124,6 +133,34 @@ export default function LeadsPage() {
       body: JSON.stringify({ status }),
     });
     mutate("/api/leads");
+  }
+
+  function openEdit(lead: any) {
+    setEditTarget(lead);
+    setEditForm({ name: lead.name, phone: lead.phone, source: lead.source, course: lead.course ?? "", note: lead.note ?? "" });
+    setEditError("");
+  }
+
+  async function submitEdit() {
+    if (!editTarget) return;
+    if (!editForm.name.trim()) { setEditError("Ism majburiy"); return; }
+    setEditSaving(true); setEditError("");
+    try {
+      const res = await fetch(`/api/leads/${editTarget.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          note:   editForm.note   || undefined,
+          source: editForm.source || undefined,
+          course: editForm.course || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setEditError(data.error ?? "Xatolik"); return; }
+      mutate("/api/leads");
+      setEditTarget(null);
+    } catch { setEditError("Serverga ulanib bo'lmadi"); }
+    finally { setEditSaving(false); }
   }
 
   function openCreate(status: LeadStatus = "YANGI") {
@@ -258,6 +295,58 @@ export default function LeadsPage() {
         )}
       </Modal>
 
+      <Modal
+        open={!!editTarget}
+        onClose={() => setEditTarget(null)}
+        title="Lidni tahrirlash"
+        subtitle={editTarget?.name}
+        footer={
+          <>
+            <Button onClick={submitEdit} disabled={editSaving}
+              className="flex-1 h-9 bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 text-white text-[13px]">
+              {editSaving ? "Saqlanmoqda..." : "Saqlash"}
+            </Button>
+            <Button variant="outline" className="h-9 px-4 text-[13px]" onClick={() => setEditTarget(null)}>Bekor</Button>
+          </>
+        }
+      >
+        <FormField label="Manba">
+          <div className="flex gap-1.5 flex-wrap">
+            {SOURCES.map(s => (
+              <button key={s} onClick={() => setEditForm(p => ({...p, source: s}))}
+                className={cn("px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all",
+                  editForm.source === s
+                    ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 border-neutral-900"
+                    : "border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:border-neutral-400")}>
+                {s}
+              </button>
+            ))}
+          </div>
+        </FormField>
+        <FormField label="Kurs" hint="Ixtiyoriy">
+          <Input
+            placeholder="Matematika, Ingliz tili..."
+            value={editForm.course}
+            onChange={e => setEditForm(p => ({...p, course: e.target.value}))}
+            className="h-10"
+          />
+        </FormField>
+        <FormField label="Izoh" hint="Ixtiyoriy">
+          <Input
+            placeholder="Qo'shimcha ma'lumot..."
+            value={editForm.note}
+            onChange={e => setEditForm(p => ({...p, note: e.target.value}))}
+            className="h-10"
+          />
+        </FormField>
+        {editError && (
+          <div className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 border border-red-100 rounded-xl px-3 py-2.5">
+            <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+            <p className="text-[12px] font-medium text-red-600 dark:text-red-400">{editError}</p>
+          </div>
+        )}
+      </Modal>
+
       <ConfirmDeleteModal
         open={!!deleteTarget}
         onClose={() => { setDeleteTarget(null); setError(""); }}
@@ -324,7 +413,7 @@ export default function LeadsPage() {
                         </div>
                       ))
                     : colLeads.map((lead: any) => (
-                        <LeadCard key={lead.id} lead={lead} onMove={moveLead} onDelete={l => { setError(""); setDeleteTarget(l); }} />
+                        <LeadCard key={lead.id} lead={lead} onMove={moveLead} onDelete={l => { setError(""); setDeleteTarget(l); }} onEdit={openEdit} />
                       ))
                   }
                   {!isLoading && colLeads.length === 0 && (

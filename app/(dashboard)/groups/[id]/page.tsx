@@ -1,14 +1,20 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import { useGroup } from "@/lib/hooks/useGroups";
 import { TopHeader } from "@/components/layout/top-header";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft, Users, BookOpen, Clock, Calendar,
-  GraduationCap, AlertCircle, CheckCircle, UserCheck,
+  GraduationCap, AlertCircle, CheckCircle, UserCheck, Plus,
 } from "lucide-react";
+import { mutate } from "swr";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
+import { FormField } from "@/components/ui/form-field";
+import { PhoneInput } from "@/components/ui/phone-input";
 
 function Skeleton({ className }: { className?: string }) {
   return <div className={cn("animate-pulse bg-neutral-200 dark:bg-neutral-700 rounded-xl", className)} />;
@@ -34,6 +40,30 @@ const DAY_LABELS: Record<string, string> = {
 export default function GroupDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { data: group, isLoading } = useGroup(id);
+
+  const [showAdd, setShowAdd] = useState(false);
+  const [addForm, setAddForm] = useState({ name: "", phone: "", parentPhone: "" });
+  const [addErr,  setAddErr]  = useState("");
+  const [addSaving, setAddSaving] = useState(false);
+
+  async function submitAdd() {
+    if (!addForm.name.trim()) { setAddErr("Ism majburiy"); return; }
+    if (addForm.phone.replace(/\D/g, "").length !== 12) { setAddErr("To'liq raqam kiriting"); return; }
+    setAddSaving(true); setAddErr("");
+    try {
+      const res = await fetch("/api/students", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: addForm.name, phone: addForm.phone, parentPhone: addForm.parentPhone || undefined, groupId: id }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setAddErr(data.error ?? "Xatolik"); return; }
+      mutate(`/api/groups/${id}`);
+      setShowAdd(false);
+      setAddForm({ name: "", phone: "", parentPhone: "" });
+    } catch { setAddErr("Serverga ulanib bo'lmadi"); }
+    finally { setAddSaving(false); }
+  }
 
   if (isLoading) {
     return (
@@ -73,7 +103,44 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
             Guruhlar
           </Link>
         }
+        action={{ label: "O'quvchi qo'shish", onClick: () => { setAddErr(""); setShowAdd(true); } }}
       />
+
+      <Modal
+        open={showAdd}
+        onClose={() => setShowAdd(false)}
+        title="Yangi o'quvchi qo'shish"
+        subtitle={`Guruh: ${group.name}`}
+        footer={
+          <>
+            <Button onClick={submitAdd} disabled={addSaving}
+              className="flex-1 h-9 bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 text-white text-[13px]">
+              {addSaving ? "Qo'shilmoqda..." : "Qo'shish"}
+            </Button>
+            <Button variant="outline" className="h-9 px-4 text-[13px]" onClick={() => setShowAdd(false)}>Bekor</Button>
+          </>
+        }
+      >
+        <FormField label="Ism familiya" required error={addErr.includes("Ism") ? addErr : ""}>
+          <Input placeholder="Alisher Navoiy" value={addForm.name}
+            onChange={e => { setAddForm(p => ({...p, name: e.target.value})); setAddErr(""); }}
+            className="h-10" />
+        </FormField>
+        <FormField label="Telefon raqam" required error={addErr.includes("raqam") ? addErr : ""}>
+          <PhoneInput value={addForm.phone}
+            onChange={v => { setAddForm(p => ({...p, phone: v})); setAddErr(""); }}
+            error={addErr.includes("raqam")} />
+        </FormField>
+        <FormField label="Ota-ona telefoni" hint="Ixtiyoriy">
+          <PhoneInput value={addForm.parentPhone} onChange={v => setAddForm(p => ({...p, parentPhone: v}))} />
+        </FormField>
+        {addErr && !addErr.includes("Ism") && !addErr.includes("raqam") && (
+          <div className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 border border-red-100 rounded-xl px-3 py-2.5">
+            <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+            <p className="text-[12px] font-medium text-red-600 dark:text-red-400">{addErr}</p>
+          </div>
+        )}
+      </Modal>
 
       <div className="p-5 space-y-5">
         {/* Info cards */}
