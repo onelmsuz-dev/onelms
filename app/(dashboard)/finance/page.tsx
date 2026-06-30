@@ -40,9 +40,15 @@ const fetcher = (url: string) => fetch(url).then(r => r.json());
 
 export default function FinancePage() {
   const [activeTab,    setActiveTab]    = useState<Tab>("kirim");
-  const [showPayModal, setShowPayModal] = useState(false);
-  const [payForm,      setPayForm]      = useState({ studentId: "", amount: "", method: "NAQD", note: "" });
-  const [saving,       setSaving]       = useState(false);
+  const [showPayModal,  setShowPayModal]  = useState(false);
+  const [payForm,       setPayForm]       = useState({ studentId: "", amount: "", method: "NAQD", note: "" });
+  const [saving,        setSaving]        = useState(false);
+
+  // Xarajat
+  const [showExpModal, setShowExpModal] = useState(false);
+  const [expForm,      setExpForm]      = useState({ category: "", description: "", amount: "", date: "" });
+  const [expErr,       setExpErr]       = useState("");
+  const [expSaving,    setExpSaving]    = useState(false);
 
   // Oylik
   const now = new Date();
@@ -100,6 +106,35 @@ export default function FinancePage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function submitExpense() {
+    if (!expForm.category.trim() || !expForm.description.trim() || !expForm.amount) {
+      setExpErr("Barcha maydonlarni to'ldiring"); return;
+    }
+    const amount = parseFloat(expForm.amount);
+    if (isNaN(amount) || amount <= 0) { setExpErr("Summa to'g'ri kiriting"); return; }
+
+    setExpSaving(true); setExpErr("");
+    try {
+      const res = await fetch("/api/expenses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category:    expForm.category.trim(),
+          description: expForm.description.trim(),
+          amount,
+          ...(expForm.date ? { date: expForm.date } : {}),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setExpErr(data.error ?? "Xatolik"); return; }
+      mutate("/api/expenses");
+      mutate("/api/reports");
+      setShowExpModal(false);
+      setExpForm({ category: "", description: "", amount: "", date: "" });
+    } catch { setExpErr("Serverga ulanib bo'lmadi"); }
+    finally { setExpSaving(false); }
   }
 
   async function generateSalaries() {
@@ -227,6 +262,67 @@ export default function FinancePage() {
         </div>
       )}
 
+      {/* Expense modal */}
+      {showExpModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          onClick={e => e.target === e.currentTarget && setShowExpModal(false)}>
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 dark:border-neutral-800">
+              <div className="flex items-center gap-2">
+                <TrendingDown className="w-5 h-5 text-red-500" />
+                <h2 className="font-bold text-[15px] text-neutral-900 dark:text-neutral-100">Xarajat qo'shish</h2>
+              </div>
+              <button onClick={() => setShowExpModal(false)}
+                className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <Label className="text-xs font-medium text-neutral-500 mb-1.5 block">Kategoriya</Label>
+                <select value={expForm.category}
+                  onChange={e => { setExpForm(p => ({...p, category: e.target.value})); setExpErr(""); }}
+                  className="w-full h-9 px-3 text-sm rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 outline-none">
+                  <option value="">Kategoriyani tanlang...</option>
+                  {["Ijara", "Kommunal", "Maosh", "Reklama", "Ta'mirlash", "Jihozlar", "Maktab buyumlari", "Boshqa"].map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs font-medium text-neutral-500 mb-1.5 block">Tavsif</Label>
+                <Input placeholder="Masalan: Iyul oyi ijara to'lovi" value={expForm.description}
+                  onChange={e => { setExpForm(p => ({...p, description: e.target.value})); setExpErr(""); }}
+                  className="h-9 text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs font-medium text-neutral-500 mb-1.5 block">Summa (so'm)</Label>
+                <Input type="number" placeholder="1 000 000" value={expForm.amount}
+                  onChange={e => { setExpForm(p => ({...p, amount: e.target.value})); setExpErr(""); }}
+                  className="h-9 text-sm" min="0" />
+              </div>
+              <div>
+                <Label className="text-xs font-medium text-neutral-500 mb-1.5 block">Sana (ixtiyoriy)</Label>
+                <input type="date" value={expForm.date}
+                  onChange={e => setExpForm(p => ({...p, date: e.target.value}))}
+                  className="w-full h-9 px-3 text-sm rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 outline-none" />
+              </div>
+              {expErr && (
+                <p className="text-[12px] text-red-600 dark:text-red-400 font-medium">{expErr}</p>
+              )}
+            </div>
+            <div className="px-5 pb-5 flex gap-2">
+              <Button
+                className="flex-1 bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 h-10"
+                disabled={expSaving} onClick={submitExpense}>
+                {expSaving ? "Saqlanmoqda..." : "Qo'shish"}
+              </Button>
+              <Button variant="outline" className="h-10 px-4" onClick={() => setShowExpModal(false)}>Bekor</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="p-5 space-y-5">
 
         {/* Stats */}
@@ -341,7 +437,8 @@ export default function FinancePage() {
           <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 dark:border-neutral-800">
               <p className="text-[13px] font-semibold text-neutral-900 dark:text-neutral-100">Xarajatlar ({expenses.length} ta)</p>
-              <button className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
+              <button onClick={() => { setExpErr(""); setExpForm({ category: "", description: "", amount: "", date: "" }); setShowExpModal(true); }}
+                className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
                 <Plus className="w-3.5 h-3.5" /> Xarajat qo'shish
               </button>
             </div>

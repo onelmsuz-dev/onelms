@@ -7,12 +7,14 @@ const UZ_MONTHS = ["Yan", "Fev", "Mar", "Apr", "May", "Iyn", "Iyl", "Avg", "Sen"
 
 export const GET = guard(
   ["SUPER_ADMIN", "ACCOUNTANT"],
-  async (_req, _ctx, { organizationId }) => {
+  async (req, _ctx, { organizationId }) => {
+    const url    = new URL(req.url);
+    const count  = Math.min(Math.max(parseInt(url.searchParams.get("months") ?? "6", 10) || 6, 1), 12);
+
     const now = new Date();
 
-    // Last 6 months
-    const months = Array.from({ length: 6 }, (_, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+    const months = Array.from({ length: count }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (count - 1 - i), 1);
       return { year: d.getFullYear(), month: d.getMonth(), label: UZ_MONTHS[d.getMonth()] };
     });
 
@@ -37,8 +39,8 @@ export const GET = guard(
         return {
           month,
           label,
-          kirim:  payments._sum.amount  ?? 0,
-          chiqim: expenses._sum.amount  ?? 0,
+          kirim:  payments._sum.amount ?? 0,
+          chiqim: expenses._sum.amount ?? 0,
         };
       }),
     );

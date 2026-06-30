@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { guard, ok, err } from "@/lib/api-guard";
+import { createNotification } from "@/lib/notify";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -72,6 +73,15 @@ export const POST = guard(["SUPER_ADMIN", "ACCOUNTANT", "RECEPTIONIST"], async (
 
     return p;
   });
+
+  const fmt = (v: number) =>
+    new Intl.NumberFormat("uz-UZ", { style: "currency", currency: "UZS", maximumFractionDigits: 0 }).format(v);
+  void createNotification(
+    organizationId,
+    "payment",
+    "To'lov qabul qilindi",
+    `${payment.student.name} — ${fmt(parsed.data.amount)}`,
+  );
 
   return ok(payment, 201);
 });

@@ -3,6 +3,7 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import { useStudent } from "@/lib/hooks/useStudents";
+import { useGroups } from "@/lib/hooks/useGroups";
 import { TopHeader } from "@/components/layout/top-header";
 import { Modal } from "@/components/ui/modal";
 import { FormField } from "@/components/ui/form-field";
@@ -11,8 +12,8 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { mutate } from "swr";
 import {
-  Phone, Calendar, DollarSign, ArrowLeft,
-  CheckCircle, Clock, AlertCircle, Plus,
+  Phone, Calendar, DollarSign, ArrowLeft, AlertCircle,
+  Plus, LogOut, Shuffle,
 } from "lucide-react";
 
 function fmt(v: number) {
@@ -40,39 +41,101 @@ const METHOD_LABELS: Record<string, string> = { NAQD: "Naqd pul", KARTA: "Karta"
 export default function StudentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { data: student, isLoading, mutate: revalidate } = useStudent(id);
+  const { data: groupsRaw } = useGroups({ status: "ACTIVE" });
+  const allGroups: any[] = Array.isArray(groupsRaw) ? groupsRaw : [];
 
+  // Payment modal
   const [showPayModal, setShowPayModal] = useState(false);
   const [payForm,      setPayForm]      = useState({ amount: "", method: "NAQD", note: "" });
   const [payErr,       setPayErr]       = useState("");
   const [paying,       setPaying]       = useState(false);
 
+  // Exit group modal
+  const [showExitModal, setShowExitModal] = useState(false);
+  const [exiting,       setExiting]       = useState(false);
+
+  // Transfer group modal
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [transferGroupId,   setTransferGroupId]   = useState("");
+  const [transferErr,       setTransferErr]       = useState("");
+  const [transferring,      setTransferring]      = useState(false);
+
+  function revalidateAll() {
+    revalidate();
+    mutate((k: string) => typeof k === "string" && k.startsWith("/api/students"), undefined, { revalidate: true });
+  }
+
+  // ── Payment ──────────────────────────────────────────────────────────────────
   async function submitPayment() {
     const amount = parseFloat(payForm.amount.replace(/\s/g, ""));
     if (!amount || amount <= 0) { setPayErr("Summa to'g'ri kiriting"); return; }
-
     setPaying(true); setPayErr("");
     try {
       const sg = student?.groups?.[0];
       const res = await fetch("/api/payments", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          studentId: id,
-          groupId:   sg?.groupId ?? undefined,
-          amount,
-          method:    payForm.method,
-          note:      payForm.note || undefined,
+          studentId: id, groupId: sg?.groupId ?? undefined,
+          amount, method: payForm.method, note: payForm.note || undefined,
         }),
       });
       const data = await res.json();
       if (!res.ok) { setPayErr(data.error ?? "Xatolik"); return; }
-      revalidate();
-      mutate((key: string) => typeof key === "string" && key.startsWith("/api/students"), undefined, { revalidate: true });
+      revalidateAll();
       setShowPayModal(false);
       setPayForm({ amount: "", method: "NAQD", note: "" });
     } catch { setPayErr("Serverga ulanib bo'lmadi"); }
     finally { setPaying(false); }
   }
 
+  // ── Exit group ───────────────────────────────────────────────────────────────
+  async function exitGroup() {
+    const sg = student?.groups?.find((g: any) => g.enrollmentStatus !== "CHIQIB_KETGAN");
+    if (!sg) return;
+    setExiting(true);
+    try {
+      await fetch(`/api/student-groups/${sg.id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enrollmentStatus: "CHIQIB_KETGAN" }),
+      });
+      // Also mark student inactive
+      await fetch(`/api/students/${id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: false }),
+      });
+      revalidateAll();
+      setShowExitModal(false);
+    } finally { setExiting(false); }
+  }
+
+  // ── Transfer group ────────────────────────────────────────────────────────────
+  async function transferGroup() {
+    if (!transferGroupId) { setTransferErr("Yangi guruhni tanlang"); return; }
+    const sg = student?.groups?.find((g: any) => g.enrollmentStatus !== "CHIQIB_KETGAN");
+    setTransferring(true); setTransferErr("");
+    try {
+      // 1. Set current group to CHIQIB_KETGAN
+      if (sg) {
+        await fetch(`/api/student-groups/${sg.id}`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ enrollmentStatus: "CHIQIB_KETGAN" }),
+        });
+      }
+      // 2. Add to new group (FAOL)
+      const res = await fetch("/api/student-groups", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId: id, groupId: transferGroupId }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setTransferErr(data.error ?? "Xatolik"); return; }
+      revalidateAll();
+      setShowTransferModal(false);
+      setTransferGroupId("");
+    } catch { setTransferErr("Serverga ulanib bo'lmadi"); }
+    finally { setTransferring(false); }
+  }
+
+  // ── Loading / Not found ───────────────────────────────────────────────────────
   if (isLoading) {
     return (
       <div className="p-5 space-y-5">
@@ -84,7 +147,6 @@ export default function StudentDetailPage({ params }: { params: Promise<{ id: st
       </div>
     );
   }
-
   if (!student || student.error) {
     return (
       <div className="p-5 flex flex-col items-center py-20 text-neutral-400">
@@ -95,13 +157,16 @@ export default function StudentDetailPage({ params }: { params: Promise<{ id: st
     );
   }
 
-  const sg      = student.groups?.[0];
-  const group   = sg?.group;
-  const teacher = group?.teacher?.user;
-  const enroll  = ENROLL_CFG[sg?.enrollmentStatus ?? (student.isActive ? "FAOL" : "SINOV")];
-  const attended = student.attendance?.filter((a: any) => a.status === "KELDI").length ?? 0;
-  const total    = student.attendance?.filter((a: any) => a.status !== "SINOV_DARSI").length ?? 0;
-  const rate     = total > 0 ? Math.round((attended / total) * 100) : 0;
+  const activeSg  = student.groups?.find((g: any) => g.enrollmentStatus !== "CHIQIB_KETGAN");
+  const group     = activeSg?.group;
+  const teacher   = group?.teacher?.user;
+  const enroll    = ENROLL_CFG[activeSg?.enrollmentStatus ?? (student.isActive ? "FAOL" : "SINOV")];
+  const attended  = student.attendance?.filter((a: any) => a.status === "KELDI").length ?? 0;
+  const total     = student.attendance?.filter((a: any) => a.status !== "SINOV_DARSI").length ?? 0;
+  const rate      = total > 0 ? Math.round((attended / total) * 100) : 0;
+
+  // Groups available for transfer (exclude current group)
+  const availableGroups = allGroups.filter(g => g.id !== activeSg?.groupId);
 
   return (
     <div>
@@ -117,11 +182,8 @@ export default function StudentDetailPage({ params }: { params: Promise<{ id: st
       />
 
       {/* Payment modal */}
-      <Modal
-        open={showPayModal}
-        onClose={() => setShowPayModal(false)}
-        title="To'lov qabul qilish"
-        subtitle={student.name}
+      <Modal open={showPayModal} onClose={() => setShowPayModal(false)}
+        title="To'lov qabul qilish" subtitle={student.name}
         footer={
           <>
             <Button onClick={submitPayment} disabled={paying}
@@ -130,28 +192,20 @@ export default function StudentDetailPage({ params }: { params: Promise<{ id: st
             </Button>
             <Button variant="outline" className="h-9 px-4 text-[13px]" onClick={() => setShowPayModal(false)}>Bekor</Button>
           </>
-        }
-      >
+        }>
         <FormField label="Summa (UZS)" required>
-          <Input
-            placeholder="500 000"
-            value={payForm.amount}
+          <Input placeholder="500 000" value={payForm.amount} type="number" min="0"
             onChange={e => { setPayForm(p => ({...p, amount: e.target.value})); setPayErr(""); }}
-            className="h-10 text-[14px] font-semibold"
-            type="number"
-            min="0"
-          />
+            className="h-10 text-[14px] font-semibold" />
         </FormField>
         <FormField label="To'lov usuli">
           <div className="grid grid-cols-2 gap-2">
             {METHODS.map(m => (
               <button key={m} type="button" onClick={() => setPayForm(p => ({...p, method: m}))}
-                className={cn(
-                  "h-10 rounded-xl border text-[13px] font-semibold transition-all",
+                className={cn("h-10 rounded-xl border text-[13px] font-semibold transition-all",
                   payForm.method === m
                     ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 border-neutral-900"
-                    : "bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700 hover:border-neutral-400"
-                )}>
+                    : "bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700 hover:border-neutral-400")}>
                 {METHOD_LABELS[m]}
               </button>
             ))}
@@ -159,21 +213,73 @@ export default function StudentDetailPage({ params }: { params: Promise<{ id: st
         </FormField>
         <FormField label="Izoh" hint="Ixtiyoriy">
           <Input placeholder="Iyul oyi uchun..." value={payForm.note}
-            onChange={e => setPayForm(p => ({...p, note: e.target.value}))}
-            className="h-10" />
+            onChange={e => setPayForm(p => ({...p, note: e.target.value}))} className="h-10" />
         </FormField>
-        {/* Current balance */}
         <div className="flex items-center justify-between bg-neutral-50 dark:bg-neutral-800 rounded-xl px-4 py-2.5">
           <span className="text-[12px] text-neutral-500">Joriy balans</span>
-          <span className={cn("text-[13px] font-bold",
-            student.balance >= 0 ? "text-green-600" : "text-red-600")}>
+          <span className={cn("text-[13px] font-bold", student.balance >= 0 ? "text-green-600" : "text-red-600")}>
             {fmt(student.balance)}
           </span>
         </div>
         {payErr && (
-          <div className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/40 rounded-xl px-3 py-2.5">
+          <div className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 border border-red-100 rounded-xl px-3 py-2.5">
             <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
             <p className="text-[12px] font-medium text-red-600 dark:text-red-400">{payErr}</p>
+          </div>
+        )}
+      </Modal>
+
+      {/* Exit group modal */}
+      <Modal open={showExitModal} onClose={() => setShowExitModal(false)}
+        title="Guruhdan chiqarish"
+        subtitle={`${student.name} — ${group?.name ?? "guruh"}`}
+        footer={
+          <>
+            <Button onClick={exitGroup} disabled={exiting}
+              className="flex-1 h-9 bg-red-600 hover:bg-red-700 text-white text-[13px]">
+              {exiting ? "Chiqarilmoqda..." : "Ha, chiqarish"}
+            </Button>
+            <Button variant="outline" className="h-9 px-4 text-[13px]" onClick={() => setShowExitModal(false)}>Bekor</Button>
+          </>
+        }>
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/40 rounded-xl px-4 py-3">
+          <p className="text-[13px] text-red-700 dark:text-red-400">
+            <strong>{student.name}</strong> <strong>{group?.name}</strong> guruhidan chiqariladi va nofaol holatga o'tkaziladi.
+          </p>
+        </div>
+      </Modal>
+
+      {/* Transfer group modal */}
+      <Modal open={showTransferModal} onClose={() => { setShowTransferModal(false); setTransferGroupId(""); setTransferErr(""); }}
+        title="Guruh almashtirish"
+        subtitle={`Hozir: ${group?.name ?? "guruhsiz"}`}
+        footer={
+          <>
+            <Button onClick={transferGroup} disabled={transferring}
+              className="flex-1 h-9 bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 text-white text-[13px]">
+              {transferring ? "O'tkazilmoqda..." : "O'tkazish"}
+            </Button>
+            <Button variant="outline" className="h-9 px-4 text-[13px]" onClick={() => setShowTransferModal(false)}>Bekor</Button>
+          </>
+        }>
+        <FormField label="Yangi guruh" required error={transferErr.includes("guruh") ? transferErr : ""}>
+          <select value={transferGroupId} onChange={e => { setTransferGroupId(e.target.value); setTransferErr(""); }}
+            className="w-full h-10 px-3 text-[13px] rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 outline-none">
+            <option value="">Guruhni tanlang...</option>
+            {availableGroups.map((g: any) => (
+              <option key={g.id} value={g.id}>{g.name} — {g.course?.name}</option>
+            ))}
+          </select>
+        </FormField>
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/40 rounded-xl px-4 py-3">
+          <p className="text-[12px] text-amber-700 dark:text-amber-400">
+            Joriy guruh (<strong>{group?.name}</strong>) dan chiqariladi va yangi guruhga faol sifatida qo'shiladi.
+          </p>
+        </div>
+        {transferErr && !transferErr.includes("guruh") && (
+          <div className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 border border-red-100 rounded-xl px-3 py-2.5">
+            <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+            <p className="text-[12px] font-medium text-red-600 dark:text-red-400">{transferErr}</p>
           </div>
         )}
       </Modal>
@@ -184,12 +290,10 @@ export default function StudentDetailPage({ params }: { params: Promise<{ id: st
           {/* Profile */}
           <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5">
             <div className="flex items-center gap-4 mb-4">
-              <div className={cn(
-                "w-14 h-14 rounded-2xl flex items-center justify-center text-white text-xl font-black",
+              <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center text-white text-xl font-black",
                 student.isActive
                   ? "bg-gradient-to-br from-blue-400 to-indigo-500"
-                  : "bg-gradient-to-br from-amber-400 to-orange-400"
-              )}>
+                  : "bg-gradient-to-br from-amber-400 to-orange-400")}>
                 {student.name[0]}
               </div>
               <div>
@@ -241,6 +345,17 @@ export default function StudentDetailPage({ params }: { params: Promise<{ id: st
                 <p className="text-[11px] text-neutral-400">
                   {group.scheduleDays?.join(", ").toUpperCase()} · {group.startTime}–{group.endTime}
                 </p>
+                {/* Group actions */}
+                <div className="flex gap-2 pt-1">
+                  <button onClick={() => { setTransferGroupId(""); setTransferErr(""); setShowTransferModal(true); }}
+                    className="flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg font-semibold bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors">
+                    <Shuffle className="w-3 h-3" /> Guruh almashtirish
+                  </button>
+                  <button onClick={() => setShowExitModal(true)}
+                    className="flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg font-semibold bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">
+                    <LogOut className="w-3 h-3" /> Chiqarish
+                  </button>
+                </div>
               </div>
             ) : (
               <p className="text-[13px] text-neutral-400">Guruhga biriktirilmagan</p>

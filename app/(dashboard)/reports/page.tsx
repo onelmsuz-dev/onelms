@@ -24,12 +24,19 @@ function formatCurrency(v: number) {
 const PIE_COLORS = ["#3b82f6", "#10b981", "#8b5cf6", "#f59e0b", "#ef4444", "#06b6d4"];
 const COURSE_COLORS = ["bg-blue-500", "bg-green-500", "bg-purple-500", "bg-orange-500", "bg-pink-500", "bg-yellow-500"];
 
-const DATE_RANGES = ["Bu oy", "O'tgan oy", "So'nggi 3 oy", "So'nggi 6 oy", "Bu yil"];
+const DATE_RANGES: { label: string; months: number }[] = [
+  { label: "Bu oy",         months: 1 },
+  { label: "So'nggi 3 oy", months: 3 },
+  { label: "So'nggi 6 oy", months: 6 },
+  { label: "Bu yil",       months: 12 },
+];
 
 export default function ReportsPage() {
   const chart = useChartColors();
-  const [dateRange, setDateRange] = useState("So'nggi 6 oy");
+  const [monthCount, setMonthCount] = useState(6);
   const [showDateDrop, setShowDateDrop] = useState(false);
+
+  const selectedRange = DATE_RANGES.find(r => r.months === monthCount) ?? DATE_RANGES[2];
 
   const { data: dashRaw } = useDashboard();
   const dash = dashRaw ?? {};
@@ -37,7 +44,7 @@ export default function ReportsPage() {
   const { data: coursesRaw } = useCourses();
   const courses: any[] = Array.isArray(coursesRaw) ? coursesRaw : [];
 
-  const { data: reportsRaw } = useSWR("/api/reports", fetcher);
+  const { data: reportsRaw } = useSWR(`/api/reports?months=${monthCount}`, fetcher);
   const revenue: { label: string; kirim: number; chiqim: number }[] = reportsRaw?.revenue ?? [];
 
   const courseDistribution = courses
@@ -62,7 +69,7 @@ export default function ReportsPage() {
               className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700
                 bg-white dark:bg-neutral-900 text-[13px] font-medium text-neutral-700 dark:text-neutral-300
                 hover:border-neutral-400 transition-colors">
-              {dateRange}
+              {selectedRange.label}
               <ChevronDown className={cn("w-3.5 h-3.5 text-neutral-400 transition-transform", showDateDrop && "rotate-180")} />
             </button>
             {showDateDrop && (
@@ -70,14 +77,14 @@ export default function ReportsPage() {
                 <div className="fixed inset-0 z-40" onClick={() => setShowDateDrop(false)} />
                 <div className="absolute top-full left-0 mt-1.5 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg z-50 min-w-[140px] overflow-hidden">
                   {DATE_RANGES.map(r => (
-                    <button key={r} onClick={() => { setDateRange(r); setShowDateDrop(false); }}
+                    <button key={r.months} onClick={() => { setMonthCount(r.months); setShowDateDrop(false); }}
                       className={cn(
                         "w-full text-left px-3 py-2 text-[13px] hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors",
-                        dateRange === r
+                        monthCount === r.months
                           ? "font-semibold text-neutral-900 dark:text-neutral-100 bg-neutral-50 dark:bg-neutral-800"
                           : "text-neutral-600 dark:text-neutral-400"
                       )}>
-                      {r}
+                      {r.label}
                     </button>
                   ))}
                 </div>
@@ -113,7 +120,7 @@ export default function ReportsPage() {
         {/* Charts row */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
           <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5">
-            <p className="text-[13px] font-semibold text-neutral-900 dark:text-neutral-100 mb-4">Moliyaviy hisobot (6 oy)</p>
+            <p className="text-[13px] font-semibold text-neutral-900 dark:text-neutral-100 mb-4">Moliyaviy hisobot ({selectedRange.label.toLowerCase()})</p>
             {revenue.length === 0 ? (
               <div className="h-[220px] flex items-center justify-center text-neutral-400 text-sm">Ma'lumot yuklanmoqda...</div>
             ) : (
