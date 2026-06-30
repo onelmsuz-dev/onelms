@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useSession } from "next-auth/react";
 import { TopHeader } from "@/components/layout/top-header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -161,6 +162,8 @@ function MiniCal({ pickerMonth, onChangeMonth, today, selDay, weekStart, view, o
 
 export default function SchedulePage() {
   const today = useMemo(() => { const d=new Date(); d.setHours(0,0,0,0); return d; }, []);
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "SUPER_ADMIN";
 
   const [view,        setView]        = useState<ViewMode>("hafta");
   const [selDay,      setSelDay]      = useState(new Date(today));
@@ -548,19 +551,21 @@ export default function SchedulePage() {
           Bugun
         </button>
 
-        {/* Two buttons side by side */}
-        <div className="ml-auto flex items-center gap-2">
-          <button onClick={openDarsModal}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors">
-            <Plus className="w-3.5 h-3.5" />
-            Dars qo'shish
-          </button>
-          <button onClick={openGroupModal}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 text-xs font-semibold hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
-            <Plus className="w-3.5 h-3.5" />
-            Guruh qo'shish
-          </button>
-        </div>
+        {/* Two buttons side by side — admin only */}
+        {isAdmin && (
+          <div className="ml-auto flex items-center gap-2">
+            <button onClick={openDarsModal}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors">
+              <Plus className="w-3.5 h-3.5" />
+              Dars qo'shish
+            </button>
+            <button onClick={openGroupModal}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 text-xs font-semibold hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
+              <Plus className="w-3.5 h-3.5" />
+              Guruh qo'shish
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ══ KUN VIEW ══════════════════════════════════════════════════════════ */}
@@ -628,14 +633,18 @@ export default function SchedulePage() {
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
                     <p className="text-sm font-semibold text-neutral-400 dark:text-neutral-600">Bu kunda dars yo'q</p>
                     <div className="flex gap-2">
-                      <button onClick={openDarsModal}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-[12px] font-semibold hover:bg-blue-700 transition-colors">
-                        <Plus className="w-3.5 h-3.5" /> Dars qo'shish
-                      </button>
-                      <button onClick={openGroupModal}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-[12px] font-semibold text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors">
-                        <Plus className="w-3.5 h-3.5" /> Guruh qo'shish
-                      </button>
+                      {isAdmin && (
+                        <>
+                          <button onClick={openDarsModal}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-[12px] font-semibold hover:bg-blue-700 transition-colors">
+                            <Plus className="w-3.5 h-3.5" /> Dars qo'shish
+                          </button>
+                          <button onClick={openGroupModal}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-[12px] font-semibold text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors">
+                            <Plus className="w-3.5 h-3.5" /> Guruh qo'shish
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 ) : kunEntries.map(entry => {
