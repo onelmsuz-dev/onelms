@@ -12,6 +12,7 @@ declare module "next-auth" {
       role:           Role;
       teacherId:      string | null;
       organizationId: string | null;
+      orgSubdomain:   string | null;
     };
   }
 
@@ -20,6 +21,7 @@ declare module "next-auth" {
     role:           Role;
     teacherId:      string | null;
     organizationId: string | null;
+    orgSubdomain:   string | null;
   }
 }
 
@@ -30,5 +32,6 @@ declare module "next-auth/jwt" {
     role:           Role;
     teacherId:      string | null;
     organizationId: string | null;
+    orgSubdomain:   string | null;
   }
 }

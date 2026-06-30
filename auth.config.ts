@@ -14,6 +14,7 @@ export const authConfig: NextAuthConfig = {
         token.phone          = (user as any).phone;
         token.teacherId      = (user as any).teacherId      ?? null;
         token.organizationId = (user as any).organizationId ?? null;
+        token.orgSubdomain   = (user as any).orgSubdomain   ?? null;
       }
       return token;
     },
@@ -24,6 +25,7 @@ export const authConfig: NextAuthConfig = {
         session.user.phone          = token.phone          as string;
         session.user.teacherId      = token.teacherId      as string | null;
         session.user.organizationId = token.organizationId as string | null;
+        session.user.orgSubdomain   = token.orgSubdomain   as string | null;
       }
       return session;
     },

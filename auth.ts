@@ -21,63 +21,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const { phone, password, subdomain } = parsed.data;
 
-        // PLATFORM_ADMIN: admin subdomenidan kiradi
-        if (subdomain === "admin") {
-          const user = await db.user.findFirst({
+        // Asosiy domen (oneroom.uz) yoki www — FAQAT Platform Admin
+        if (!subdomain || subdomain === "www") {
+          const admin = await db.user.findFirst({
             where: { phone, role: "PLATFORM_ADMIN", organizationId: null },
           });
-          if (!user || !user.isActive) return null;
-          const valid = await bcrypt.compare(password, user.password);
+          if (!admin || !admin.isActive) return null;
+          const valid = await bcrypt.compare(password, admin.password);
           if (!valid) return null;
           return {
-            id: user.id, name: user.name, email: user.email ?? "",
-            phone: user.phone, role: user.role,
-            teacherId: null, organizationId: null,
+            id: admin.id, name: admin.name, email: admin.email ?? "",
+            phone: admin.phone, role: admin.role,
+            teacherId: null, organizationId: null, orgSubdomain: null,
           };
         }
 
-        // Subdomensiz kirish: telefon bo'yicha istalgan orgdan qidirish
-        if (!subdomain || subdomain === "demo" || subdomain === "www") {
-          // Platform Admin ham subdomensiz kira olsin
-          const platformAdmin = await db.user.findFirst({
-            where: { phone, role: "PLATFORM_ADMIN", organizationId: null },
-          });
-          if (platformAdmin && platformAdmin.isActive) {
-            const valid = await bcrypt.compare(password, platformAdmin.password);
-            if (!valid) return null;
-            return {
-              id: platformAdmin.id, name: platformAdmin.name, email: platformAdmin.email ?? "",
-              phone: platformAdmin.phone, role: platformAdmin.role,
-              teacherId: null, organizationId: null,
-            };
-          }
-
-          const user = await db.user.findFirst({
-            where: { phone, organizationId: { not: null } },
-            include: { organization: { select: { isActive: true } } },
-          });
-          if (!user || !user.isActive) return null;
-          if (!user.organization?.isActive) return null;
-
-          const valid = await bcrypt.compare(password, user.password);
-          if (!valid) return null;
-
-          let teacherId: string | null = null;
-          if (user.role === "TEACHER") {
-            const teacher = await db.teacher.findUnique({
-              where: { userId: user.id }, select: { id: true },
-            });
-            teacherId = teacher?.id ?? null;
-          }
-
-          return {
-            id: user.id, name: user.name, email: user.email ?? "",
-            phone: user.phone, role: user.role,
-            teacherId, organizationId: user.organizationId,
-          };
-        }
-
-        // Subdomenli kirish: subdomain orqali org topiladi
+        // Subdomenli kirish: faqat o'sha subdomendagi foydalanuvchi
         const org = await db.organization.findUnique({ where: { subdomain } });
         if (!org || !org.isActive) return null;
 
@@ -100,7 +59,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return {
           id: user.id, name: user.name, email: user.email ?? "",
           phone: user.phone, role: user.role,
-          teacherId, organizationId: org.id,
+          teacherId, organizationId: org.id, orgSubdomain: subdomain,
         };
       },
     }),

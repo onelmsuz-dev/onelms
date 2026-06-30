@@ -49,11 +49,17 @@ export const proxy = auth((req) => {
   const subdomain = getSubdomainFromReq(req);
 
   if (subdomain) {
-    // Subdomain URL'ni to'g'ri qurish: https://demo.oneroom.uz/login
     const origin = `https://${subdomain}.oneroom.uz`;
+    const userSubdomain = (req.auth?.user as any)?.orgSubdomain ?? null;
+
+    // Login bo'lgan bo'lsa, bu subdomain'ga tegishli ekanini tekshir
+    if (isLoggedIn && userSubdomain !== subdomain) {
+      // Boshqa org sessiyasi bor — bu subdomain login sahifasiga yo'naltir
+      return Response.redirect(origin + "/login");
+    }
+
     if (pathname === "/") {
-      const target = isLoggedIn ? "/dashboard" : "/login";
-      return Response.redirect(origin + target);
+      return Response.redirect(origin + (isLoggedIn ? "/dashboard" : "/login"));
     }
     if (pathname === "/login" && isLoggedIn) {
       return Response.redirect(origin + "/dashboard");
