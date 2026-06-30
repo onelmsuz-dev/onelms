@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { guard, ok, err } from "@/lib/api-guard";
+import { createNotification } from "@/lib/notify";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -84,6 +85,13 @@ export const POST = guard(["SUPER_ADMIN", "RECEPTIONIST"], async (req, _, { orga
 
     return s;
   });
+
+  void createNotification(
+    organizationId,
+    "student",
+    "Yangi o'quvchi ro'yxatdan o'tdi",
+    `${student.name}${parsed.data.phone ? ` · ${parsed.data.phone}` : ""}`,
+  );
 
   return ok(student, 201);
 });

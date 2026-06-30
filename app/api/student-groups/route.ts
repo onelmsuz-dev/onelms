@@ -31,8 +31,15 @@ export const POST = guard(["SUPER_ADMIN", "RECEPTIONIST"], async (req, _, { orga
   });
   if (existing) return err("O'quvchi bu guruhda allaqachon ro'yxatda", 400);
 
-  const sg = await db.studentGroup.create({
-    data: { studentId, groupId, enrollmentStatus: "FAOL" },
+  const sg = await db.$transaction(async (tx) => {
+    const record = await tx.studentGroup.create({
+      data: { studentId, groupId, enrollmentStatus: "FAOL" },
+    });
+    await tx.student.update({
+      where: { id: studentId },
+      data:  { isActive: true },
+    });
+    return record;
   });
 
   return ok(sg, 201);
