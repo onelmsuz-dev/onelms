@@ -411,6 +411,7 @@ export default function FinancePage() {
                 ))}
               </div>
             </div>
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-neutral-50 dark:bg-neutral-800/60 hover:bg-neutral-50 dark:hover:bg-neutral-800/60">
@@ -459,6 +460,7 @@ export default function FinancePage() {
                 }
               </TableBody>
             </Table>
+            </div>
             {!paymentsLoading && payments.length === 0 && (
               <div className="py-12 text-center text-sm text-neutral-400">Hali to'lov yo'q</div>
             )}
@@ -475,6 +477,7 @@ export default function FinancePage() {
                 <Plus className="w-3.5 h-3.5" /> Xarajat qo'shish
               </button>
             </div>
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-neutral-50 dark:bg-neutral-800/60 hover:bg-neutral-50 dark:hover:bg-neutral-800/60">
@@ -503,6 +506,7 @@ export default function FinancePage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
             {!expensesLoading && expenses.length === 0 && (
               <div className="py-12 text-center text-sm text-neutral-400">Hali xarajat yo'q</div>
             )}
@@ -567,6 +571,7 @@ export default function FinancePage() {
                 </p>
                 <span className="text-[11px] text-neutral-400">{salaries.length} ta o'qituvchi</span>
               </div>
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-neutral-50 dark:bg-neutral-800/60 hover:bg-neutral-50 dark:hover:bg-neutral-800/60">
@@ -652,6 +657,7 @@ export default function FinancePage() {
                   }
                 </TableBody>
               </Table>
+              </div>
               {!salariesLoading && salaries.length === 0 && (
                 <div className="py-14 text-center">
                   <p className="text-sm text-neutral-400 mb-3">Bu oy uchun oylik hisoblanmagan</p>

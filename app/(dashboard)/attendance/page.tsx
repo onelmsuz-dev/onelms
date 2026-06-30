@@ -252,6 +252,7 @@ export default function AttendancePage() {
 
         {/* Table */}
         <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-neutral-50 dark:bg-neutral-800/60 hover:bg-neutral-50 dark:hover:bg-neutral-800/60">
@@ -316,6 +317,7 @@ export default function AttendancePage() {
               }
             </TableBody>
           </Table>
+          </div>
           {!studentsLoading && students.length === 0 && (
             <div className="py-12 text-center text-sm text-neutral-400">
               {selectedGroup ? "Bu guruhda faol o'quvchi yo'q" : "Guruhni tanlang"}

@@ -81,6 +81,7 @@ function GlobalSearch() {
   const [results,    setResults]    = useState<SearchResult | null>(null);
   const [loading,    setLoading]    = useState(false);
   const [open,       setOpen]       = useState(false);
+  const [expanded,   setExpanded]   = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef     = useRef<HTMLInputElement>(null);
   const debouncedQ   = useDebounce(query, 300);
@@ -112,27 +113,46 @@ function GlobalSearch() {
   );
   const showPanel = open && (query.length >= 2);
 
-  function clear() { setQuery(""); setResults(null); setOpen(false); }
+  function clear() { setQuery(""); setResults(null); setOpen(false); setExpanded(false); }
 
   return (
     <div className="relative" ref={containerRef}>
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none" />
-      <input
-        ref={inputRef}
-        value={query}
-        onChange={e => { setQuery(e.target.value); setOpen(true); }}
-        onFocus={() => setOpen(true)}
-        placeholder="Qidirish..."
-        className="pl-9 pr-8 h-9 w-56 text-[13px] bg-neutral-100 dark:bg-neutral-800 border-0 rounded-xl
-          text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 outline-none
-          focus:bg-neutral-50 dark:focus:bg-neutral-700 transition-colors"
-      />
-      {query && (
-        <button onClick={clear}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors">
-          <X className="w-3.5 h-3.5" />
+      {/* Mobile: icon button to expand */}
+      {!expanded && (
+        <button
+          className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+          onClick={() => { setExpanded(true); setTimeout(() => inputRef.current?.focus(), 50); }}
+        >
+          <Search className="w-4 h-4" />
         </button>
       )}
+
+      {/* Desktop always visible, mobile only when expanded */}
+      <div className={cn(!expanded && "hidden lg:block")}>
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none" />
+        <input
+          ref={inputRef}
+          value={query}
+          onChange={e => { setQuery(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          placeholder="Qidirish..."
+          className="pl-9 pr-8 h-9 w-44 sm:w-56 text-[13px] bg-neutral-100 dark:bg-neutral-800 border-0 rounded-xl
+            text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 outline-none
+            focus:bg-neutral-50 dark:focus:bg-neutral-700 transition-colors"
+        />
+        {query && (
+          <button onClick={clear}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+        {!query && expanded && (
+          <button onClick={() => setExpanded(false)}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors lg:hidden">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
 
       {showPanel && (
         <div className="absolute right-0 top-full mt-1.5 w-80 bg-white dark:bg-neutral-900
@@ -244,19 +264,19 @@ export function TopHeader({ title, subtitle, action }: TopHeaderProps) {
   }, [showNotif]);
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between px-6 h-[60px]
+    <header className="sticky top-0 z-30 flex items-center justify-between px-4 lg:px-6 h-[56px] lg:h-[60px]
       bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md
       border-b border-neutral-200/60 dark:border-neutral-800/60">
-      <div>
-        <h1 className="font-bold text-[18px] text-neutral-900 dark:text-neutral-100 tracking-tight leading-none">
+      <div className="min-w-0 flex-1 mr-3">
+        <h1 className="font-bold text-[16px] lg:text-[18px] text-neutral-900 dark:text-neutral-100 tracking-tight leading-none truncate">
           {title}
         </h1>
         {subtitle && (
-          <p className="text-[12px] text-neutral-400 dark:text-neutral-500 mt-0.5">{subtitle}</p>
+          <p className="text-[11px] lg:text-[12px] text-neutral-400 dark:text-neutral-500 mt-0.5 truncate">{subtitle}</p>
         )}
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 lg:gap-2 shrink-0">
         <GlobalSearch />
 
         {/* Bell */}
@@ -329,12 +349,22 @@ export function TopHeader({ title, subtitle, action }: TopHeaderProps) {
         </div>
 
         {action && (
-          <Button size="sm" onClick={action.onClick}
-            className="gap-1.5 h-9 px-4 text-[13px] bg-neutral-900 hover:bg-neutral-800
-              dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200 text-white rounded-xl">
-            <Plus className="w-3.5 h-3.5" />
-            {action.label}
-          </Button>
+          <>
+            {/* Mobile: icon only */}
+            <button
+              onClick={action.onClick}
+              className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+            {/* Desktop: label + icon */}
+            <Button size="sm" onClick={action.onClick}
+              className="hidden lg:flex gap-1.5 h-9 px-4 text-[13px] bg-neutral-900 hover:bg-neutral-800
+                dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200 text-white rounded-xl">
+              <Plus className="w-3.5 h-3.5" />
+              {action.label}
+            </Button>
+          </>
         )}
       </div>
     </header>
