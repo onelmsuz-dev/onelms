@@ -3,11 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, GraduationCap, Users, Wallet, MoreHorizontal, X } from "lucide-react";
+import { LayoutDashboard, GraduationCap, Users, Wallet, MoreHorizontal, X, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { navSections } from "@/components/layout/nav-config";
 import { NAV_PERMISSIONS } from "@/lib/permissions";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import type { Role } from "@prisma/client";
 
 const BOTTOM_ITEMS = [
@@ -73,6 +73,21 @@ export function BottomNav() {
                 </Link>
               );
             })}
+          </div>
+
+          <div className="mt-3 pt-3 border-t border-neutral-100 dark:border-neutral-800">
+            <button
+              onClick={async () => {
+                setShowMore(false);
+                const loginUrl = (typeof window !== "undefined" ? window.location.origin : "") + "/login";
+                await signOut({ redirect: false });
+                window.location.href = loginUrl;
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+            >
+              <LogOut className="w-4 h-4 shrink-0" />
+              <span className="text-[13px] font-medium">Chiqish</span>
+            </button>
           </div>
         </div>
       )}

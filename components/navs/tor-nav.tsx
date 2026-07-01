@@ -170,7 +170,11 @@ export function TorNav() {
 
         {/* Logout */}
         <button
-          onClick={() => signOut({ callbackUrl: (typeof window !== "undefined" ? window.location.origin : "") + "/login" })}
+          onClick={async () => {
+            const loginUrl = (typeof window !== "undefined" ? window.location.origin : "") + "/login";
+            await signOut({ redirect: false });
+            window.location.href = loginUrl;
+          }}
           className={cn(
             "w-full flex items-center h-9 rounded-xl transition-colors",
             open ? "px-2.5 gap-3" : "justify-center",

@@ -231,7 +231,7 @@ model StudentGroup {
   student          Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
   groupId          String
   group            Group            @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  paymentStatus    PaymentStatus    @default(TOLANDI)
+  paymentStatus    PaymentStatus    @default(QARZDOR)
   enrollmentStatus EnrollmentStatus @default(SINOV)
   joinedAt         DateTime         @default(now())
 
