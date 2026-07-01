@@ -98,7 +98,6 @@ export default function StudentsPage() {
     if (!createForm.name.trim()) errs.name = "Ism majburiy";
     if (createForm.phone.replace(/\D/g, "").length !== 12) errs.phone = "To'liq 9 ta raqam kiriting";
     if (errs.name || errs.phone) { setCreateFErr(errs); return; }
-    if (!createForm.groupId) { setCreateErr("Guruhni tanlang"); return; }
 
     setSaving(true); setCreateErr("");
     try {
@@ -203,20 +202,29 @@ export default function StudentsPage() {
         <FormField label="Ota-ona telefoni" hint="Ixtiyoriy">
           <PhoneInput value={createForm.parentPhone} onChange={v => setCreateForm(p => ({...p, parentPhone: v}))} />
         </FormField>
-        <FormField label="Guruh" required error={createErr.includes("Guruh") ? createErr : ""}>
-          <select value={createForm.groupId}
-            onChange={e => { setCreateForm(p => ({...p, groupId: e.target.value})); setCreateErr(""); }}
-            className="w-full h-10 px-3 text-[13px] rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 outline-none focus:border-neutral-900 dark:focus:border-neutral-400 transition-colors">
-            <option value="">Guruhni tanlang...</option>
-            {groups.map((g: any) => (
-              <option key={g.id} value={g.id}>{g.name} — {g.course?.name}</option>
-            ))}
-          </select>
+        <FormField label="Guruh" error={createErr.includes("Guruh") ? createErr : ""}>
+          {groups.length === 0 ? (
+            <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/40 rounded-xl px-3 py-2.5">
+              <p className="text-[12px] text-amber-700 dark:text-amber-400">Guruhlar mavjud emas</p>
+              <Link href="/groups" className="text-[12px] font-semibold text-blue-600 dark:text-blue-400 hover:underline">+ Guruh yarating →</Link>
+            </div>
+          ) : (
+            <select value={createForm.groupId}
+              onChange={e => { setCreateForm(p => ({...p, groupId: e.target.value})); setCreateErr(""); }}
+              className="w-full h-10 px-3 text-[13px] rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 outline-none focus:border-neutral-900 dark:focus:border-neutral-400 transition-colors">
+              <option value="">Guruhni tanlang...</option>
+              {groups.map((g: any) => (
+                <option key={g.id} value={g.id}>{g.name} — {g.course?.name}</option>
+              ))}
+            </select>
+          )}
         </FormField>
         <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/40 rounded-xl px-3 py-2.5">
           <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
           <p className="text-[12px] text-amber-700 dark:text-amber-400">
-            O'quvchi <strong>nofaol</strong> holatda qo'shiladi. Sinov darsidan keyin "Faollashtirish" tugmasini bosing.
+            {createForm.groupId
+              ? <>O'quvchi <strong>nofaol</strong> holatda qo'shiladi. Sinov darsidan keyin "Faollashtirish" tugmasini bosing.</>
+              : <>Guruhsiz qo'shilsa, keyinchalik "Guruh biriktirish" orqali guruhlarga qo'shishingiz mumkin.</>}
           </p>
         </div>
         {createErr && !createErr.includes("Guruh") && (

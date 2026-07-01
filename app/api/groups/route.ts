@@ -7,8 +7,8 @@ export const dynamic = "force-dynamic";
 
 const createSchema = z.object({
   name:         z.string().min(2),
-  courseId:     z.string().min(1),
-  teacherId:    z.string().min(1),
+  courseId:     z.string().optional(),
+  teacherId:    z.string().optional(),
   roomId:       z.string().optional(),
   branchId:     z.string().optional(),
   maxStudents:  z.number().int().min(1).default(15),
@@ -57,15 +57,17 @@ export const POST = guard(["SUPER_ADMIN"], async (req, _, { organizationId }) =>
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) return err(parsed.error.issues[0].message);
 
-  const { startDate, endDate, ...rest } = parsed.data;
+  const { startDate, endDate, courseId, teacherId, ...rest } = parsed.data;
 
   const group = await db.group.create({
     data: {
       ...rest,
+      ...(courseId  ? { courseId }  : {}),
+      ...(teacherId ? { teacherId } : {}),
       organizationId,
       startDate: new Date(startDate),
       endDate:   endDate ? new Date(endDate) : undefined,
-    },
+    } as any,
     include: { course: true, teacher: { include: { user: true } } },
   });
 

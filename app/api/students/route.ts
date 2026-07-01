@@ -10,7 +10,7 @@ const createSchema = z.object({
   name:        z.string().min(2),
   phone:       z.string().min(9),
   parentPhone: z.string().optional(),
-  groupId:     z.string().min(1),
+  groupId:     z.string().optional(),
 });
 
 export const GET = guard(["SUPER_ADMIN", "TEACHER", "RECEPTIONIST"], async (req, _, { role, teacherId, organizationId }) => {
@@ -56,35 +56,41 @@ export const POST = guard(["SUPER_ADMIN", "RECEPTIONIST"], async (req, _, { orga
 
   const { groupId, ...data } = parsed.data;
 
-  const group = await db.group.findFirst({
-    where: { id: groupId, organizationId },
-    select: { id: true, scheduleDays: true, startTime: true },
-  });
-  if (!group) return err("Guruh topilmadi", 404);
+  let trialDate: Date | null = null;
 
-  // Keyingi dars kunini topamiz (sinov darsi uchun)
-  const trialDate = nextClassDate(group.scheduleDays, group.startTime);
+  if (groupId) {
+    const group = await db.group.findFirst({
+      where: { id: groupId, organizationId },
+      select: { id: true, scheduleDays: true, startTime: true },
+    });
+    if (!group) return err("Guruh topilmadi", 404);
+
+    // Keyingi dars kunini topamiz (sinov darsi uchun)
+    trialDate = nextClassDate(group.scheduleDays, group.startTime);
+  }
 
   const student = await db.$transaction(async (tx) => {
     const s = await tx.student.create({
       data: { ...data, organizationId, isActive: false },
     });
 
-    const sg = await tx.studentGroup.create({
-      data: { studentId: s.id, groupId, enrollmentStatus: "SINOV" },
-    });
+    if (groupId) {
+      const sg = await tx.studentGroup.create({
+        data: { studentId: s.id, groupId, enrollmentStatus: "SINOV" },
+      });
 
-    // Sinov darsi attendance yozuvi
-    if (trialDate) {
-      await tx.attendance.create({
-        data: {
-          studentGroupId: sg.id,
-          studentId: s.id,
-          groupId,
-          date:   trialDate,
-          status: "SINOV_DARSI",
-        },
-      }).catch(() => null); // unique constraint — o'sha kuni boshqa yozuv bo'lsa skip
+      // Sinov darsi attendance yozuvi
+      if (trialDate) {
+        await tx.attendance.create({
+          data: {
+            studentGroupId: sg.id,
+            studentId: s.id,
+            groupId,
+            date:   trialDate,
+            status: "SINOV_DARSI",
+          },
+        }).catch(() => null); // unique constraint — o'sha kuni boshqa yozuv bo'lsa skip
+      }
     }
 
     return s;

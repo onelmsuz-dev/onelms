@@ -178,6 +178,18 @@ export default function SchedulePage() {
   const [groupSaving,    setGroupSaving]    = useState(false);
   const [groupError,     setGroupError]     = useState("");
 
+  // Quick-add teacher inline
+  const [showQTeacher,   setShowQTeacher]   = useState(false);
+  const [qTeacherForm,   setQTeacherForm]   = useState({ name: "", phone: "", password: "", subjects: "" });
+  const [qTeacherSaving, setQTeacherSaving] = useState(false);
+  const [qTeacherErr,    setQTeacherErr]    = useState("");
+
+  // Quick-add course inline
+  const [showQCourse,   setShowQCourse]   = useState(false);
+  const [qCourseForm,   setQCourseForm]   = useState({ name: "", duration: "3 oy" });
+  const [qCourseSaving, setQCourseSaving] = useState(false);
+  const [qCourseErr,    setQCourseErr]    = useState("");
+
   // Quick "Dars qo'shish" modal (minimal: teacher + days + time)
   const [showDarsModal, setShowDarsModal] = useState(false);
   const [darsForm,      setDarsForm]      = useState({ teacherId: "", courseId: "", scheduleDays: [] as string[], startTime: "09:00", endTime: "10:30" });
@@ -240,8 +252,8 @@ export default function SchedulePage() {
   }
 
   async function submitGroup() {
-    if (!groupForm.name.trim() || !groupForm.courseId || !groupForm.teacherId) { setGroupError("Guruh nomi, kurs va o'qituvchi majburiy"); return; }
-    if (groupForm.scheduleDays.length === 0) { setGroupError("Kamida 1 ta kun tanlang"); return; }
+    if (!groupForm.name.trim()) { setGroupError("Guruh nomi majburiy"); return; }
+    if (!groupForm.scheduleDays.length || !groupForm.startTime || !groupForm.endTime) { setGroupError("Dars kunlari, boshlanish va tugash vaqti majburiy"); return; }
     setGroupSaving(true); setGroupError("");
     try {
       const res = await fetch("/api/groups", {
@@ -287,6 +299,47 @@ export default function SchedulePage() {
       setShowDarsModal(false);
     } catch { setDarsError("Serverga ulanib bo'lmadi"); }
     finally { setDarsSaving(false); }
+  }
+
+  async function submitQuickTeacher() {
+    if (!qTeacherForm.name.trim()) { setQTeacherErr("Ism majburiy"); return; }
+    if (!qTeacherForm.phone.trim()) { setQTeacherErr("Telefon majburiy"); return; }
+    if (!qTeacherForm.password || qTeacherForm.password.length < 6) { setQTeacherErr("Parol kamida 6 belgi"); return; }
+    setQTeacherSaving(true); setQTeacherErr("");
+    try {
+      const res = await fetch("/api/teachers", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: qTeacherForm.name, phone: qTeacherForm.phone, password: qTeacherForm.password,
+          subjects: qTeacherForm.subjects ? qTeacherForm.subjects.split(",").map(s => s.trim()).filter(Boolean) : ["Umumiy"],
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setQTeacherErr(data.error ?? "Xatolik"); return; }
+      await mutate("/api/teachers");
+      setGroupForm(p => ({ ...p, teacherId: data.id ?? data.teacher?.id ?? "" }));
+      setShowQTeacher(false);
+      setQTeacherForm({ name: "", phone: "", password: "", subjects: "" });
+    } catch { setQTeacherErr("Serverga ulanib bo'lmadi"); }
+    finally { setQTeacherSaving(false); }
+  }
+
+  async function submitQuickCourse() {
+    if (!qCourseForm.name.trim()) { setQCourseErr("Kurs nomi majburiy"); return; }
+    setQCourseSaving(true); setQCourseErr("");
+    try {
+      const res = await fetch("/api/courses", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: qCourseForm.name, duration: qCourseForm.duration }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setQCourseErr(data.error ?? "Xatolik"); return; }
+      await mutate("/api/courses");
+      setGroupForm(p => ({ ...p, courseId: data.id ?? "" }));
+      setShowQCourse(false);
+      setQCourseForm({ name: "", duration: "3 oy" });
+    } catch { setQCourseErr("Serverga ulanib bo'lmadi"); }
+    finally { setQCourseSaving(false); }
   }
 
   const weekDays = useMemo(() => Array.from({length:6},(_,i)=>addDays(weekStart,i)), [weekStart]);
@@ -385,17 +438,63 @@ export default function SchedulePage() {
             onChange={e => setGroupForm(p => ({...p, name: e.target.value}))} className="h-10" />
         </FormField>
         <div className="grid grid-cols-2 gap-3">
-          <FormField label="Kurs" required>
+          <FormField label="Kurs">
             <select value={groupForm.courseId} onChange={e => setGroupForm(p => ({...p, courseId: e.target.value}))} className={SELECT_CLS}>
               <option value="">Kurs tanlang...</option>
               {courses.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
+            <button type="button" onClick={() => { setShowQCourse(v => !v); setQCourseErr(""); }}
+              className="mt-1.5 flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline">
+              <Plus className="w-3 h-3" /> Yangi kurs qo'shish
+            </button>
+            {showQCourse && (
+              <div className="mt-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-100 dark:border-green-900/40 space-y-2">
+                <p className="text-[11px] font-bold text-green-700 dark:text-green-400">Tezkor kurs qo'shish</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input placeholder="Kurs nomi" value={qCourseForm.name}
+                    onChange={e => setQCourseForm(p => ({...p, name: e.target.value}))} className="h-8 text-[12px]" />
+                  <Input placeholder="Davomiylik (3 oy...)" value={qCourseForm.duration}
+                    onChange={e => setQCourseForm(p => ({...p, duration: e.target.value}))} className="h-8 text-[12px]" />
+                </div>
+                {qCourseErr && <p className="text-[11px] text-red-600 dark:text-red-400">{qCourseErr}</p>}
+                <Button onClick={submitQuickCourse} disabled={qCourseSaving}
+                  className="h-7 px-3 text-[11px] bg-green-600 hover:bg-green-700 text-white rounded-lg">
+                  {qCourseSaving ? "Qo'shilmoqda..." : "Qo'shish"}
+                </Button>
+              </div>
+            )}
           </FormField>
-          <FormField label="O'qituvchi" required>
+          <FormField label="O'qituvchi">
             <select value={groupForm.teacherId} onChange={e => setGroupForm(p => ({...p, teacherId: e.target.value}))} className={SELECT_CLS}>
               <option value="">O'qituvchi tanlang...</option>
               {teachers.map((t: any) => <option key={t.id} value={t.id}>{t.user?.name}</option>)}
             </select>
+            <button type="button" onClick={() => { setShowQTeacher(v => !v); setQTeacherErr(""); }}
+              className="mt-1.5 flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline">
+              <Plus className="w-3 h-3" /> Yangi o'qituvchi qo'shish
+            </button>
+            {showQTeacher && (
+              <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-900/40 space-y-2">
+                <p className="text-[11px] font-bold text-blue-700 dark:text-blue-400">Tezkor o'qituvchi qo'shish</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input placeholder="Ism familiya" value={qTeacherForm.name}
+                    onChange={e => setQTeacherForm(p => ({...p, name: e.target.value}))} className="h-8 text-[12px]" />
+                  <Input placeholder="+998 XX XXX XX XX" value={qTeacherForm.phone}
+                    onChange={e => setQTeacherForm(p => ({...p, phone: e.target.value}))} className="h-8 text-[12px]" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input placeholder="Parol (min 6)" type="password" value={qTeacherForm.password}
+                    onChange={e => setQTeacherForm(p => ({...p, password: e.target.value}))} className="h-8 text-[12px]" />
+                  <Input placeholder="Fan (ixtiyoriy)" value={qTeacherForm.subjects}
+                    onChange={e => setQTeacherForm(p => ({...p, subjects: e.target.value}))} className="h-8 text-[12px]" />
+                </div>
+                {qTeacherErr && <p className="text-[11px] text-red-600 dark:text-red-400">{qTeacherErr}</p>}
+                <Button onClick={submitQuickTeacher} disabled={qTeacherSaving}
+                  className="h-7 px-3 text-[11px] bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+                  {qTeacherSaving ? "Qo'shilmoqda..." : "Qo'shish"}
+                </Button>
+              </div>
+            )}
           </FormField>
         </div>
         <FormField label="Dars kunlari" required>
