@@ -476,6 +476,31 @@ export default function SchedulePage() {
             {showQTeacher && (
               <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-900/40 space-y-2">
                 <p className="text-[11px] font-bold text-blue-700 dark:text-blue-400">Tezkor o'qituvchi qo'shish</p>
+
+                {/* Admin o'zini o'qituvchi sifatida qo'sha oladi */}
+                {isAdmin && session?.user?.id && (
+                  <button type="button"
+                    onClick={async () => {
+                      setQTeacherSaving(true); setQTeacherErr("");
+                      try {
+                        const res = await fetch("/api/teachers", {
+                          method: "POST", headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ existingUserId: session.user.id }),
+                        });
+                        const data = await res.json();
+                        if (!res.ok) { setQTeacherErr(data.error ?? "Xatolik"); return; }
+                        await mutate("/api/teachers");
+                        setGroupForm(p => ({ ...p, teacherId: data.id ?? "" }));
+                        setShowQTeacher(false);
+                      } catch { setQTeacherErr("Serverga ulanib bo'lmadi"); }
+                      finally { setQTeacherSaving(false); }
+                    }}
+                    disabled={qTeacherSaving}
+                    className="w-full flex items-center justify-center gap-1.5 h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-semibold transition-colors disabled:opacity-60">
+                    {qTeacherSaving ? "..." : `O'zimni qo'shish (${session.user.name ?? "Admin"})`}
+                  </button>
+                )}
+
                 <div className="grid grid-cols-2 gap-2">
                   <Input placeholder="Ism familiya" value={qTeacherForm.name}
                     onChange={e => setQTeacherForm(p => ({...p, name: e.target.value}))} className="h-8 text-[12px]" />
@@ -491,7 +516,7 @@ export default function SchedulePage() {
                 {qTeacherErr && <p className="text-[11px] text-red-600 dark:text-red-400">{qTeacherErr}</p>}
                 <Button onClick={submitQuickTeacher} disabled={qTeacherSaving}
                   className="h-7 px-3 text-[11px] bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
-                  {qTeacherSaving ? "Qo'shilmoqda..." : "Qo'shish"}
+                  {qTeacherSaving ? "Qo'shilmoqda..." : "Yangi qo'shish"}
                 </Button>
               </div>
             )}
