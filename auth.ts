@@ -22,7 +22,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const { phone, password, subdomain } = parsed.data;
 
         // Asosiy domen (oneroom.uz) yoki www — FAQAT Platform Admin
-        if (!subdomain || subdomain === "www") {
+        if (!subdomain || subdomain === "www" || subdomain === "admin") {
           const admin = await db.user.findFirst({
             where: { phone, role: "PLATFORM_ADMIN", organizationId: null },
           });
