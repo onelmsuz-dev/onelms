@@ -1,8 +1,11 @@
 import { db } from "@/lib/db";
 import { guard, ok } from "@/lib/api-guard";
 import { groupBranchWhere, parseBranchId } from "@/lib/branch-filter";
+import type { LeadStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
+
+const ACTIVE_LEAD_STATUSES: LeadStatus[] = ["YANGI", "ALOQA_QILINGAN"];
 
 export const GET = guard(
   ["SUPER_ADMIN", "TEACHER", "RECEPTIONIST", "ACCOUNTANT"],
@@ -58,11 +61,11 @@ export const GET = guard(
 
     const leadWhere = branchId
       ? { ...orgFilter, ...noLeads }
-      : { status: { in: ["YANGI", "ALOQA_QILINGAN"] as const }, ...orgFilter };
+      : { status: { in: ACTIVE_LEAD_STATUSES }, ...orgFilter };
 
     const prevLeadWhere = branchId
       ? { ...orgFilter, ...noLeads }
-      : { status: { in: ["YANGI", "ALOQA_QILINGAN"] as const }, ...orgFilter, createdAt: { lt: thisMonthStart } };
+      : { status: { in: ACTIVE_LEAD_STATUSES }, ...orgFilter, createdAt: { lt: thisMonthStart } };
 
     const [
       studentCount,
