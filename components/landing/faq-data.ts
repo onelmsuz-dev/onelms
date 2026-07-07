@@ -30,11 +30,6 @@ export const faqItems = [
       "OneRoom to'liq responsive — telefon, planshet va kompyuterdan bir xil qulay ishlaydi. Maxsus mobil ilovani o'rnatish shart emas, brauzerdan to'g'ridan-to'g'ri kirish mumkin. Telegram bot orqali o'qituvchi va o'quvchilar dars xabarlari va to'lov eslatmalarini oladi.",
   },
   {
-    question: "O'quvchilar va ota-onalar tizimga kira oladimi?",
-    answer:
-      "Ha. O'quvchilar va ota-onalar uchun alohida portal mavjud: ular dars jadvali, davomot hisoboti va to'lov tarixi ko'ra oladi. Telegram bot orqali ham xabar olish mumkin. O'qituvchilar o'z guruhlarini ko'rish va davomot belgilash uchun alohida kirish huquqiga ega.",
-  },
-  {
     question: "Texnik yordam qanday ishlaydi?",
     answer:
       "Starter tarifda email orqali yordam (ish kunlari, 24 soat ichida javob). Pro tarifda chat va email yordam (ish soatlarida). Enterprise tarifda 24/7 telefon, chat va email yordam + shaxsiy menejer. Barcha foydalanuvchilar uchun video darsliklar va yordam markazi bepul.",
