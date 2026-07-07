@@ -37,7 +37,7 @@ export const GET = guard(["SUPER_ADMIN", "TEACHER", "RECEPTIONIST"], async (req,
     include: {
       groups: {
         include: {
-          group: { include: { course: true, teacher: { include: { user: true } } } },
+          group: { include: { course: true, room: true, teacher: { include: { user: true } } } },
         },
         orderBy: { joinedAt: "desc" },
       },

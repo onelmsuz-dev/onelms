@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { guard, ok } from "@/lib/api-guard";
+import { groupBranchWhere, parseBranchId } from "@/lib/branch-filter";
 
 export const dynamic = "force-dynamic";
 
@@ -8,8 +9,9 @@ const UZ_MONTHS = ["Yan", "Fev", "Mar", "Apr", "May", "Iyn", "Iyl", "Avg", "Sen"
 export const GET = guard(
   ["SUPER_ADMIN", "ACCOUNTANT"],
   async (req, _ctx, { organizationId }) => {
-    const url    = new URL(req.url);
-    const count  = Math.min(Math.max(parseInt(url.searchParams.get("months") ?? "6", 10) || 6, 1), 12);
+    const url       = new URL(req.url);
+    const count     = Math.min(Math.max(parseInt(url.searchParams.get("months") ?? "6", 10) || 6, 1), 12);
+    const branchId  = parseBranchId(req);
 
     const now = new Date();
 
@@ -19,6 +21,7 @@ export const GET = guard(
     });
 
     const orgFilter = organizationId ? { organizationId } : {};
+    const paymentBranch = branchId ? { group: groupBranchWhere(branchId) } : {};
 
     const revenueData = await Promise.all(
       months.map(async ({ year, month, label }) => {
@@ -27,7 +30,7 @@ export const GET = guard(
 
         const [payments, expenses] = await Promise.all([
           db.payment.aggregate({
-            where: { ...orgFilter, date: { gte: start, lt: end } },
+            where: { ...orgFilter, ...paymentBranch, date: { gte: start, lt: end } },
             _sum: { amount: true },
           }),
           db.expense.aggregate({

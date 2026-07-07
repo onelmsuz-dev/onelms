@@ -1,21 +1,27 @@
 import { db } from "@/lib/db";
 import { guard, ok } from "@/lib/api-guard";
+import { groupBranchWhere, parseBranchId } from "@/lib/branch-filter";
 
 export const dynamic = "force-dynamic";
 
 export const GET = guard(
   ["SUPER_ADMIN", "TEACHER", "RECEPTIONIST", "ACCOUNTANT"],
-  async (_, __, { role, teacherId, organizationId }) => {
+  async (req, __, { role, teacherId, organizationId }) => {
+    const branchId = parseBranchId(req);
     const orgFilter = organizationId ? { organizationId } : {};
+    const groupFilter = branchId ? groupBranchWhere(branchId) : {};
 
     if (role === "TEACHER" && teacherId) {
       const [groups, payments] = await Promise.all([
         db.group.findMany({
-          where:   { teacherId, ...orgFilter },
+          where:   { teacherId, ...orgFilter, ...(branchId ? groupFilter : {}) },
           include: { _count: { select: { students: true } } },
         }),
         db.payment.findMany({
-          where:  { group: { teacherId }, ...orgFilter },
+          where:  {
+            ...orgFilter,
+            group: { teacherId, ...(branchId ? groupFilter : {}) },
+          },
           select: { amount: true },
         }),
       ]);
@@ -32,6 +38,32 @@ export const GET = guard(
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastMonthEnd   = new Date(now.getFullYear(), now.getMonth(), 1);
 
+    const studentWhere = branchId
+      ? { ...orgFilter, groups: { some: { group: groupFilter } } }
+      : orgFilter;
+
+    const groupWhere = branchId
+      ? { status: "ACTIVE" as const, ...orgFilter, ...groupFilter }
+      : { status: "ACTIVE" as const, ...orgFilter };
+
+    const paymentWhere = (dateFilter: object) => branchId
+      ? { ...orgFilter, ...dateFilter, group: groupFilter }
+      : { ...orgFilter, ...dateFilter };
+
+    const teacherWhere = branchId
+      ? { status: "ACTIVE" as const, ...orgFilter, groups: { some: groupFilter } }
+      : { status: "ACTIVE" as const, ...orgFilter };
+
+    const noLeads = { id: { in: [] as string[] } };
+
+    const leadWhere = branchId
+      ? { ...orgFilter, ...noLeads }
+      : { status: { in: ["YANGI", "ALOQA_QILINGAN"] as const }, ...orgFilter };
+
+    const prevLeadWhere = branchId
+      ? { ...orgFilter, ...noLeads }
+      : { status: { in: ["YANGI", "ALOQA_QILINGAN"] as const }, ...orgFilter, createdAt: { lt: thisMonthStart } };
+
     const [
       studentCount,
       prevStudentCount,
@@ -43,15 +75,23 @@ export const GET = guard(
       prevMonthPayments,
       debtorCount,
     ] = await Promise.all([
-      db.student.count({ where: { ...orgFilter } }),
-      db.student.count({ where: { ...orgFilter, createdAt: { lt: thisMonthStart } } }),
-      db.group.count({ where: { status: "ACTIVE", ...orgFilter } }),
-      db.lead.count({ where: { status: { in: ["YANGI", "ALOQA_QILINGAN"] }, ...orgFilter } }),
-      db.lead.count({ where: { status: { in: ["YANGI", "ALOQA_QILINGAN"] }, ...orgFilter, createdAt: { lt: thisMonthStart } } }),
-      db.teacher.count({ where: { status: "ACTIVE", ...orgFilter } }),
-      db.payment.aggregate({ where: { date: { gte: thisMonthStart }, ...orgFilter }, _sum: { amount: true } }),
-      db.payment.aggregate({ where: { date: { gte: lastMonthStart, lt: lastMonthEnd }, ...orgFilter }, _sum: { amount: true } }),
-      db.student.count({ where: { balance: { lt: 0 }, ...orgFilter } }),
+      db.student.count({ where: studentWhere }),
+      db.student.count({
+        where: branchId
+          ? { ...studentWhere, createdAt: { lt: thisMonthStart } }
+          : { ...orgFilter, createdAt: { lt: thisMonthStart } },
+      }),
+      db.group.count({ where: groupWhere }),
+      db.lead.count({ where: leadWhere }),
+      db.lead.count({ where: prevLeadWhere }),
+      db.teacher.count({ where: teacherWhere }),
+      db.payment.aggregate({ where: paymentWhere({ date: { gte: thisMonthStart } }), _sum: { amount: true } }),
+      db.payment.aggregate({ where: paymentWhere({ date: { gte: lastMonthStart, lt: lastMonthEnd } }), _sum: { amount: true } }),
+      db.student.count({
+        where: branchId
+          ? { balance: { lt: 0 }, ...studentWhere }
+          : { balance: { lt: 0 }, ...orgFilter },
+      }),
     ]);
 
     const thisMonthRevenue = monthPayments._sum.amount ?? 0;
@@ -65,12 +105,12 @@ export const GET = guard(
       teacherCount,
       monthlyRevenue: thisMonthRevenue,
       debtorCount,
-      // change indicators
       newStudentsThisMonth,
       revenueChange: lastMonthRevenue > 0
         ? Math.round(((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100)
         : null,
       newLeadsThisMonth: leadCount - prevLeadCount,
+      branchId,
     });
   }
 );

@@ -9,6 +9,7 @@ import {
 import { useChartColors } from "@/hooks/use-chart-colors";
 import { useDashboard } from "@/lib/hooks/useDashboard";
 import { useCourses } from "@/lib/hooks/useCourses";
+import { useBranchQueryString } from "@/lib/contexts/branch-context";
 import { TrendingUp, Users, BookOpen, CalendarCheck, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import useSWR from "swr";
@@ -38,13 +39,15 @@ export default function ReportsPage() {
 
   const selectedRange = DATE_RANGES.find(r => r.months === monthCount) ?? DATE_RANGES[2];
 
+  const branchQs = useBranchQueryString({ months: String(monthCount) });
+
   const { data: dashRaw } = useDashboard();
   const dash = dashRaw ?? {};
 
   const { data: coursesRaw } = useCourses();
   const courses: any[] = Array.isArray(coursesRaw) ? coursesRaw : [];
 
-  const { data: reportsRaw } = useSWR(`/api/reports?months=${monthCount}`, fetcher);
+  const { data: reportsRaw } = useSWR(`/api/reports${branchQs}`, fetcher);
   const revenue: { label: string; kirim: number; chiqim: number }[] = reportsRaw?.revenue ?? [];
 
   const courseDistribution = courses

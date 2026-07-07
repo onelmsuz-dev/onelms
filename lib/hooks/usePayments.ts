@@ -1,5 +1,6 @@
 import useSWR from "swr";
 import useSWRMutation from "swr/mutation";
+import { useBranchQueryString } from "@/lib/contexts/branch-context";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -14,12 +15,12 @@ async function poster(url: string, { arg }: { arg: unknown }) {
 }
 
 export function usePayments(params?: { studentId?: string; groupId?: string; month?: string }) {
-  const query = new URLSearchParams();
-  if (params?.studentId) query.set("studentId", params.studentId);
-  if (params?.groupId)   query.set("groupId",   params.groupId);
-  if (params?.month)     query.set("month",      params.month);
-  const qs = query.toString();
-  return useSWR(`/api/payments${qs ? `?${qs}` : ""}`, fetcher);
+  const qs = useBranchQueryString({
+    studentId: params?.studentId,
+    groupId:   params?.groupId,
+    month:     params?.month,
+  });
+  return useSWR(`/api/payments${qs}`, fetcher);
 }
 
 export function useCreatePayment() {

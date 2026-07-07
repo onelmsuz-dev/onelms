@@ -9,6 +9,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useNotifications, type Notification } from "@/lib/hooks/useNotifications";
 import { cn } from "@/lib/utils";
+import { BranchHeaderControls } from "@/components/layout/branch-header-controls";
 
 interface TopHeaderProps {
   title: string;
@@ -277,6 +278,7 @@ export function TopHeader({ title, subtitle, action }: TopHeaderProps) {
       </div>
 
       <div className="flex items-center gap-1.5 lg:gap-2 shrink-0">
+        <BranchHeaderControls />
         <GlobalSearch />
 
         {/* Bell */}

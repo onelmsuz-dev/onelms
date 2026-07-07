@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { useDashboard } from "@/lib/hooks/useDashboard";
 import { usePayments } from "@/lib/hooks/usePayments";
 import { useLeads } from "@/lib/hooks/useLeads";
+import { useBranchQueryString, useBranch } from "@/lib/contexts/branch-context";
 import useSWR from "swr";
 
 const _fetcher = (url: string) => fetch(url).then(r => r.json());
@@ -41,10 +42,12 @@ function Skeleton({ className }: { className?: string }) {
 
 export default function DashboardPage() {
   const chart = useChartColors();
+  const reportsQs = useBranchQueryString();
+  const { activeBranch } = useBranch();
   const { data: stats, isLoading: statsLoading } = useDashboard();
   const { data: leadsData, isLoading: leadsLoading } = useLeads();
   const { data: paymentsData, isLoading: paymentsLoading } = usePayments();
-  const { data: reportsData } = useSWR("/api/reports", _fetcher);
+  const { data: reportsData } = useSWR(`/api/reports${reportsQs}`, _fetcher);
   const revenueData = reportsData?.revenue ?? [];
 
   const leads    = Array.isArray(leadsData)    ? leadsData    : [];
@@ -91,7 +94,10 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <TopHeader title="Dashboard" subtitle="Bugungi holat" />
+      <TopHeader
+        title="Dashboard"
+        subtitle={activeBranch ? `${activeBranch.name} · Bugungi holat` : "Bugungi holat"}
+      />
 
       <div className="p-5 space-y-5">
 

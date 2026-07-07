@@ -1,7 +1,9 @@
 import useSWR from "swr";
+import { useBranchQueryString } from "@/lib/contexts/branch-context";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export function useDashboard() {
-  return useSWR("/api/dashboard", fetcher);
+  const qs = useBranchQueryString();
+  return useSWR(`/api/dashboard${qs}`, fetcher);
 }

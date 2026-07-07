@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { guard, ok, err } from "@/lib/api-guard";
 import { createNotification } from "@/lib/notify";
+import { groupBranchWhere, parseBranchId } from "@/lib/branch-filter";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,7 @@ export const GET = guard(["SUPER_ADMIN", "ACCOUNTANT", "RECEPTIONIST"], async (r
   const { searchParams } = new URL(req.url);
   const studentId = searchParams.get("studentId");
   const month     = searchParams.get("month");
+  const branchId  = parseBranchId(req);
 
   let dateFilter = {};
   if (month) {
@@ -29,6 +31,7 @@ export const GET = guard(["SUPER_ADMIN", "ACCOUNTANT", "RECEPTIONIST"], async (r
     where: {
       organizationId: organizationId ?? undefined,
       ...(studentId ? { studentId } : {}),
+      ...(branchId ? { group: groupBranchWhere(branchId) } : {}),
       ...dateFilter,
     },
     include: {
