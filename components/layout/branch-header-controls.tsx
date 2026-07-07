@@ -129,11 +129,11 @@ export function BranchHeaderControls() {
         size="sm"
         footer={
           <>
-            <Button variant="outline" onClick={() => setShowAdd(false)} disabled={saving}>
-              Bekor
-            </Button>
-            <Button onClick={handleAddBranch} disabled={saving}>
+            <Button className="flex-1 sm:flex-none" onClick={handleAddBranch} disabled={saving}>
               {saving ? "Saqlanmoqda..." : "Saqlash"}
+            </Button>
+            <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => setShowAdd(false)} disabled={saving}>
+              Bekor
             </Button>
           </>
         }
